@@ -18,7 +18,13 @@ function cambiar() {
     document.getElementById("presion1").textContent = `Presión: ${presion1.toFixed(2)} Pa`;
     document.getElementById("presion2").textContent = `Presión: ${presion2.toFixed(2)} Pa`;
 
-    console.clear();
-    console.log(`Vaso 1 (${liq1.nombre}): ${presion1.toFixed(2)} Pa | Densidad: ${liq1.densidad} kg/m³`);
-    console.log(`Vaso 2 (${liq2.nombre}): ${presion2.toFixed(2)} Pa | Densidad: ${liq2.densidad} kg/m³`);
+    const densidadMax = 13546;
+
+    const pos1 = 85 - ((liq1.densidad / densidadMax) * 80);
+    const pos2 = 85 - ((liq2.densidad / densidadMax) * 80);
+
+    document.getElementById("ball1").style.top = `${pos1}%`;
+    document.getElementById("ball2").style.top = `${pos2}%`;
 }
+
+window.onload = cambiar;

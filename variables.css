@@ -1,17 +1,32 @@
 .cup {
-    position: relative;
-    width: 200px;
-    height: 250px;
-    margin: auto;
-    border: 4px solid #333;
-    border-radius: 0 0 20px 20px;
-    overflow: hidden;
-    background: #eee;
+  position: relative;
+  width: 120px;
+  height: 200px;
+  border: 4px solid #333;
+  border-top: none;
+  border-radius: 0 0 15px 15px;
+  overflow: hidden;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end; 
 }
-  
+
 .fill {
-    position: absolute;
-    bottom: 0;
-    width: 100%;
-    background: cornflowerblue;
+  position: relative;
+  width: 100%;
+  bottom: 0;
+  transition: background-color 0.4s ease;
+}
+
+.ball {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 26px;
+  height: 26px;
+  background-color: #dc3545;
+  border: 2px solid #a71d2a;
+  border-radius: 50%;
+  transition: top 0.5s cubic-bezier(0.25, 1, 0.5, 1);
 }
