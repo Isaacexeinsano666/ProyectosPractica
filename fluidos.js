@@ -1,4 +1,4 @@
-const gravedad = 9.81;
+const gravedad = 9.8;
 let altura = 1;
 
 const fluidos = {

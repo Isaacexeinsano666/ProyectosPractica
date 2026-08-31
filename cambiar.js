@@ -1,4 +1,4 @@
-function cambiar() {
+function comparar() {
 
     const keyVaso1 = document.getElementById("selectLiquido1").value;
     const keyVaso2 = document.getElementById("selectLiquido2").value;
@@ -27,4 +27,4 @@ function cambiar() {
     document.getElementById("ball2").style.top = `${pos2}%`;
 }
 
-window.onload = cambiar;
+window.onload = comparar;
