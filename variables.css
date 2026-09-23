@@ -7,16 +7,14 @@
   border-radius: 0 0 15px 15px;
   overflow: hidden;
   margin: 0 auto;
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-end; 
 }
 
 .fill {
-  position: relative;
-  width: 100%;
+  position: absolute;
   bottom: 0;
-  transition: background-color 0.4s ease;
+  left: 0;
+  width: 100%;
+  transition: height 0.3s ease, background-color 0.4s ease;
 }
 
 .ball {
@@ -28,5 +26,5 @@
   background-color: #dc3545;
   border: 2px solid #a71d2a;
   border-radius: 50%;
-  transition: top 0.5s cubic-bezier(0.25, 1, 0.5, 1);
+  transition: top 0.3s ease;
 }
