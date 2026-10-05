@@ -1,5 +1,4 @@
 function comparar() {
-
     const keyVaso1 = document.getElementById("selectLiquido1").value;
     const keyVaso2 = document.getElementById("selectLiquido2").value;
 
@@ -12,51 +11,47 @@ function comparar() {
     document.getElementById("nombreLiquido1").textContent = liq1.nombre;
     document.getElementById("nombreLiquido2").textContent = liq2.nombre;
 
-    const presion1 = calcularPresion(keyVaso1);
-    const presion2 = calcularPresion(keyVaso2);
+    // Calcular presión usando la altura propia de cada vaso
+    const presion1 = calcularPresion(keyVaso1, 1);
+    const presion2 = calcularPresion(keyVaso2, 2);
 
     const presionDividida1 = presion1 / 1000;
     const presionDividida2 = presion2 / 1000;
 
     document.getElementById("presion1").innerHTML =
-        `Presión: ${presion1.toFixed(2)} Pa<br>
-         Pa ÷ 1000 = ${presionDividida1.toFixed(2)}`;
+        `Presión: ${presion1.toFixed(2).replace('.', ',')} Pa<br>Pa = ${presionDividida1.toFixed(2)} kPa`;
 
     document.getElementById("presion2").innerHTML =
-        `Presión: ${presion2.toFixed(2)} Pa<br>
-         Pa ÷ 1000 = ${presionDividida2.toFixed(2)}`;
+        `Presión: ${presion2.toFixed(2).replace('.', ',')} Pa<br>Pa = ${presionDividida2.toFixed(2)} kPa`;
 
-    actualizarAlturaLiquido();
+    actualizarAlturaLiquido(1);
+    actualizarAlturaLiquido(2);
 
     actualizarPelotas();
 }
 
-function cambiarAltura(valor) {
+function cambiarAltura(vasoNum, valor) {
+    alturas[vasoNum] = parseFloat(valor);
 
-    altura = parseFloat(valor);
+    document.getElementById(`valorAltura${vasoNum}`).textContent =
+        alturas[vasoNum].toFixed(2).replace('.', ',');
 
-    document.getElementById("valorAltura").textContent =
-        altura.toFixed(2);
-
-    actualizarAlturaLiquido();
+    actualizarAlturaLiquido(vasoNum);
 
     comparar();
 }
 
-function actualizarAlturaLiquido() {
-
+function actualizarAlturaLiquido(vasoNum) {
     const alturaMinima = 0.1;
     const alturaMaxima = 2;
 
-    const porcentaje = ((altura - alturaMinima) /
+    const porcentaje = ((alturas[vasoNum] - alturaMinima) /
         (alturaMaxima - alturaMinima)) * 100;
 
-    document.getElementById("fill1").style.height = `${porcentaje}%`;
-    document.getElementById("fill2").style.height = `${porcentaje}%`;
+    document.getElementById(`fill${vasoNum}`).style.height = `${porcentaje}%`;
 }
 
 function actualizarPelotas() {
-
     const keyVaso1 = document.getElementById("selectLiquido1").value;
     const keyVaso2 = document.getElementById("selectLiquido2").value;
 
@@ -71,5 +66,4 @@ function actualizarPelotas() {
     document.getElementById("ball1").style.top = `${pos1}%`;
     document.getElementById("ball2").style.top = `${pos2}%`;
 }
-
 window.onload = comparar;
