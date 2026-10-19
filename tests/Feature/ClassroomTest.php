@@ -39,15 +39,16 @@ class ClassroomTest extends TestCase
 
     public function test_creating_a_room_sets_owner_access_and_persists_initial_state(): void
     {
-        $response = $this->post('/sesiones', ['title' => 'Mi clase']);
+        $response = $this->post('/sesiones');
         $room = ClassroomSession::firstOrFail();
         $response->assertRedirect(route('classroom.show', $room->code))
             ->assertSessionHas("classroom_owners.{$room->id}")
             ->assertSessionHas("classroom_members.{$room->id}", true);
+        $this->assertSame('Presión hidrostática', $room->title);
         $this->assertMatchesRegularExpression('/^[A-Z0-9]{8}$/', $room->code);
         $this->assertSame(config('physics.initial_state'), $room->state);
-        $this->get(route('classroom.show', $room->code))->assertOk()->assertSee('Tú diriges el experimento');
-        $this->get('/')->assertSee('Continuar tu clase')->assertSee('Mi clase');
+        $this->get(route('classroom.show', $room->code))->assertOk()->assertSee('Profesor');
+        $this->get('/')->assertSee('Continuar tu clase')->assertSee('Presión hidrostática');
     }
 
     public function test_student_can_join_with_lowercase_hyphenated_code(): void

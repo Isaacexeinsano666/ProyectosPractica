@@ -14,14 +14,10 @@
             @error('code')<p class="field-error" id="code-error" role="alert">{{ $message }}</p>@enderror
         </form>
         <div class="teacher-entry">
-            <details @error('title') open @enderror>
+            <details>
                 <summary><span><strong>¿Eres profesor?</strong> Prepara tu laboratorio.</span><span class="text-action">Crear sesión +</span></summary>
                 <form action="{{ route('classroom.create') }}" method="POST" class="create-form">
                     @csrf
-                    <label for="title">Nombre de la clase</label>
-                    <input id="title" name="title" maxlength="100" value="{{ old('title', 'Presión hidrostática') }}" required>
-                    @error('title')<p class="field-error" role="alert">{{ $message }}</p>@enderror
-                    <p class="field-help">Recibirás un código para invitar a tus alumnos. Tú controlarás la actividad.</p>
                     <button type="submit" class="button dark">Crear y empezar la clase <span aria-hidden="true">→</span></button>
                 </form>
             </details>

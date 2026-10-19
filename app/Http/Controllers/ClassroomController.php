@@ -26,17 +26,13 @@ class ClassroomController extends Controller
 
     public function create(Request $request): RedirectResponse
     {
-        $data = $request->validate(['title' => ['required', 'string', 'max:100']], [
-            'title.required' => 'Escribe un nombre para tu clase.',
-            'title.max' => 'El nombre puede tener hasta 100 caracteres.',
-        ]);
         $secret = Str::random(64);
         $room = null;
         for ($attempt = 0; $attempt < 5; $attempt++) {
             try {
                 $room = ClassroomSession::create([
                     'code' => strtoupper(Str::random(8)),
-                    'title' => $data['title'],
+                    'title' => 'Presión hidrostática',
                     'owner_hash' => hash('sha256', $secret),
                     'state' => config('physics.initial_state'),
                     'expires_at' => now()->addHours(8),
@@ -125,7 +121,7 @@ class ClassroomController extends Controller
         abort_unless($this->isOwner($request, $room), 403);
         ClassroomSession::whereKey($room->id)->whereNull('ended_at')->update(['ended_at' => now()]);
 
-        return redirect()->route('home')->with('notice', 'La sesión finalizó. Los alumnos ya no recibirán cambios.');
+        return redirect()->route('home')->with('notice', 'La sesión finalizó.');
     }
 
     private function isOwner(Request $request, ClassroomSession $room): bool
