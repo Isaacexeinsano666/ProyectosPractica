@@ -14,26 +14,55 @@
         <details class="end-session"><summary>Finalizar sesión</summary><form action="{{ route('classroom.end', $room->code) }}" method="POST">@csrf<button type="submit" class="button danger" id="end-session">Sí, finalizar clase</button></form></details>
         @endif
     </aside>
-    <section class="experiment" aria-labelledby="experiment-heading">
+    <section class="experiment" aria-label="Actividades de fluidos">
         <div id="session-banner" class="notice" role="status" @if($active) hidden @endif>Esta clase ha finalizado. Puedes revisar el último estado o volver al inicio.</div>
-        <header class="experiment-heading"><div><h2 id="experiment-heading">Presión hidrostática</h2></div></header>
-        <div class="formula-panel"><strong>P = ρ · g · h</strong><div><span><b>ρ</b> Densidad del fluido</span><span><b>g</b> Gravedad</span><span><b>h</b> Profundidad</span></div></div>
-        <div class="vessels">
-        @for($i = 1; $i <= 2; $i++)
-            <article class="vessel-card">
-                <header><h3>Vaso {{ $i }}</h3></header>
-                <label for="selectLiquido{{ $i }}">Fluido</label>
-                <select id="selectLiquido{{ $i }}" class="experiment-control" @disabled(!$isOwner || !$active)>
-                    @foreach($physics['fluids'] as $key => $fluid)<option value="{{ $key }}" @selected($room->state['fluido'.$i] === $key)>{{ $fluid['nombre'] }} · {{ $fluid['densidad'] }} kg/m³</option>@endforeach
-                </select>
-                <div class="vessel-scene" aria-hidden="true"><div class="cup"><div id="fill{{ $i }}" class="fill"><div class="fluid-surface"></div></div><div class="cup-lines"></div><div id="ball{{ $i }}" class="ball"></div></div></div>
-                <div class="height-heading"><label for="alturaLiquido{{ $i }}">Profundidad</label><output id="valorAltura{{ $i }}" for="alturaLiquido{{ $i }}">1,00 m</output></div>
-                <input class="experiment-control height-range" type="range" id="alturaLiquido{{ $i }}" min="0.1" max="2" step="0.01" value="{{ $room->state['altura'.$i] }}" @disabled(!$isOwner || !$active)>
-                <div class="range-limits"><span>0,10 m</span><span>2,00 m</span></div>
-                <div class="pressure-result"><strong id="presion{{ $i }}">— Pa</strong><span id="kilopascales{{ $i }}">— kPa</span></div>
-            </article>
-        @endfor
+        <div class="activity-tabs" role="tablist" aria-label="Actividades de fluidos">
+            <button class="activity-tab experiment-control" type="button" data-activity="arquimedes" role="tab" aria-controls="arquimedes-panel" @disabled(!$isOwner || !$active)>Principio de Arquímedes</button>
+            <button class="activity-tab experiment-control" type="button" data-activity="hidrostatica" role="tab" aria-controls="hidrostatica-panel" @disabled(!$isOwner || !$active)>Presión hidrostática</button>
         </div>
+
+        <section id="arquimedes-panel" class="activity-panel" data-activity-panel="arquimedes" role="tabpanel">
+            <header class="experiment-heading"><div><h2>Principio de Arquímedes</h2></div></header>
+            <div class="formula-panel"><strong>E = ρ · g · V</strong><div><span><b>ρ</b> Densidad del fluido</span><span><b>g</b> Gravedad</span><span><b>V</b> Volumen desplazado</span></div></div>
+            <div class="vessels">
+            @for($i = 1; $i <= 2; $i++)
+                <article class="vessel-card">
+                    <header><h3>Vaso {{ $i }}</h3></header>
+                    <label for="arquimedesLiquido{{ $i }}">Fluido</label>
+                    <select id="arquimedesLiquido{{ $i }}" class="experiment-control" @disabled(!$isOwner || !$active)>
+                        @foreach($physics['fluids'] as $key => $fluid)<option value="{{ $key }}" @selected($room->state['arquimedes_fluido'.$i] === $key)>{{ $fluid['nombre'] }} · {{ $fluid['densidad'] }} kg/m³</option>@endforeach
+                    </select>
+                    <label class="object-label" for="selectObjeto{{ $i }}">Objeto</label>
+                    <select id="selectObjeto{{ $i }}" class="experiment-control" @disabled(!$isOwner || !$active)>
+                        @foreach($physics['objects'] as $key => $object)<option value="{{ $key }}" @selected($room->state['objeto'.$i] === $key)>{{ $object['nombre'] }} · {{ $object['densidad'] }} kg/m³</option>@endforeach
+                    </select>
+                    <div class="vessel-scene" aria-hidden="true"><div class="cup"><div id="arquimedesFill{{ $i }}" class="fill"><div class="fluid-surface"></div></div><div class="cup-lines"></div><div id="ball{{ $i }}" class="ball"></div></div></div>
+                    <div class="archimedes-result"><span>EMPUJE</span><strong id="empuje{{ $i }}">— N</strong><span id="estado{{ $i }}">—</span><small id="desplazado{{ $i }}">—</small></div>
+                </article>
+            @endfor
+            </div>
+        </section>
+
+        <section id="hidrostatica-panel" class="activity-panel" data-activity-panel="hidrostatica" role="tabpanel" hidden>
+            <header class="experiment-heading"><div><h2>Presión hidrostática</h2></div></header>
+            <div class="formula-panel"><strong>P = ρ · g · h</strong><div><span><b>ρ</b> Densidad del fluido</span><span><b>g</b> Gravedad</span><span><b>h</b> Profundidad</span></div></div>
+            <div class="vessels">
+            @for($i = 1; $i <= 2; $i++)
+                <article class="vessel-card">
+                    <header><h3>Vaso {{ $i }}</h3></header>
+                    <label for="hidrostaticaLiquido{{ $i }}">Fluido</label>
+                    <select id="hidrostaticaLiquido{{ $i }}" class="experiment-control" @disabled(!$isOwner || !$active)>
+                        @foreach($physics['fluids'] as $key => $fluid)<option value="{{ $key }}" @selected($room->state['hidrostatica_fluido'.$i] === $key)>{{ $fluid['nombre'] }} · {{ $fluid['densidad'] }} kg/m³</option>@endforeach
+                    </select>
+                    <div class="vessel-scene" aria-hidden="true"><div class="cup"><div id="hidrostaticaFill{{ $i }}" class="fill"><div class="fluid-surface"></div></div><div class="cup-lines"></div></div></div>
+                    <div class="height-heading"><label for="alturaLiquido{{ $i }}">Profundidad</label><output id="valorAltura{{ $i }}" for="alturaLiquido{{ $i }}">1,00 m</output></div>
+                    <input class="experiment-control height-range" type="range" id="alturaLiquido{{ $i }}" min="0.1" max="2" step="0.01" value="{{ $room->state['altura'.$i] }}" @disabled(!$isOwner || !$active)>
+                    <div class="range-limits"><span>0,10 m</span><span>2,00 m</span></div>
+                    <div class="pressure-result"><strong id="presion{{ $i }}">— Pa</strong><span id="kilopascales{{ $i }}">— kPa</span></div>
+                </article>
+            @endfor
+            </div>
+        </section>
     </section>
 </main>
 @endsection

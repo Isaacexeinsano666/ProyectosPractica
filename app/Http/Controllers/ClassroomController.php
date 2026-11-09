@@ -32,7 +32,7 @@ class ClassroomController extends Controller
             try {
                 $room = ClassroomSession::create([
                     'code' => strtoupper(Str::random(8)),
-                    'title' => 'Presión hidrostática',
+                    'title' => 'Laboratorio de fluidos',
                     'owner_hash' => hash('sha256', $secret),
                     'state' => config('physics.initial_state'),
                     'expires_at' => now()->addHours(8),
@@ -76,6 +76,8 @@ class ClassroomController extends Controller
             return redirect()->route('home')->with('notice', 'Ingresa el código de tu clase para unirte.');
         }
 
+        $room->state = $this->normalizedState($room->state);
+
         return view('comparador', [
             'room' => $room,
             'isOwner' => $this->isOwner($request, $room),
@@ -96,9 +98,15 @@ class ClassroomController extends Controller
         abort_unless($this->isOwner($request, $room), 403);
         abort_unless($room->isActive(), 410, 'La sesión ha finalizado.');
         $fluids = array_keys(config('physics.fluids'));
+        $objects = array_keys(config('physics.objects'));
         $state = $request->validate([
-            'fluido1' => ['required', Rule::in($fluids)],
-            'fluido2' => ['required', Rule::in($fluids)],
+            'activity' => ['required', Rule::in(['arquimedes', 'hidrostatica'])],
+            'arquimedes_fluido1' => ['required', Rule::in($fluids)],
+            'arquimedes_fluido2' => ['required', Rule::in($fluids)],
+            'objeto1' => ['required', Rule::in($objects)],
+            'objeto2' => ['required', Rule::in($objects)],
+            'hidrostatica_fluido1' => ['required', Rule::in($fluids)],
+            'hidrostatica_fluido2' => ['required', Rule::in($fluids)],
             'altura1' => ['required', 'numeric', 'between:0.1,2'],
             'altura2' => ['required', 'numeric', 'between:0.1,2'],
         ]);
@@ -140,9 +148,14 @@ class ClassroomController extends Controller
     private function snapshot(ClassroomSession $room): JsonResponse
     {
         return response()->json([
-            'state' => $room->state,
+            'state' => $this->normalizedState($room->state),
             'revision' => $room->revision,
             'active' => $room->isActive(),
         ])->header('Cache-Control', 'no-store, private');
+    }
+
+    private function normalizedState(mixed $state): array
+    {
+        return array_merge(config('physics.initial_state'), is_array($state) ? $state : []);
     }
 }

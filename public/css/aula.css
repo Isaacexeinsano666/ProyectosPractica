@@ -611,6 +611,33 @@ summary::-webkit-details-marker {
     min-width:0
 }
 
+.activity-tabs {
+    display:flex;
+    gap:10px;
+    margin:12px 0 22px;
+    border-bottom:1px solid var(--line)
+}
+
+.activity-tab {
+    appearance:none;
+    border:0;
+    border-bottom:3px solid transparent;
+    padding:11px 4px;
+    background:transparent;
+    color:var(--muted);
+    font-size:12px;
+    font-weight:650
+}
+
+.activity-tab.is-active {
+    border-bottom-color:var(--teal);
+    color:var(--teal)
+}
+
+.activity-tab:disabled {
+    opacity:1
+}
+
 .experiment-heading {
     display:flex;
     align-items:center;
@@ -729,6 +756,10 @@ summary::-webkit-details-marker {
     color:#455c60
 }
 
+.object-label {
+    margin-top: 18px
+}
+
 .vessel-scene {
     height:226px;
     display:flex;
@@ -814,7 +845,7 @@ summary::-webkit-details-marker {
     margin:0 0 20px
 }
 
-.pressure-result {
+.archimedes-result {
     padding:17px 15px;
     background:#f3f7f0;
     border:1px solid #e5ece1;
@@ -824,22 +855,27 @@ summary::-webkit-details-marker {
     gap:6px
 }
 
-.pressure-result>span:first-child {
+.archimedes-result>span:first-child {
     font-size:8px;
     letter-spacing:1.2px;
     color:var(--muted)
 }
 
-.pressure-result>strong {
+.archimedes-result>strong {
     font-size:27px;
     font-weight:550;
     letter-spacing:-1px;
     font-variant-numeric:tabular-nums
 }
 
-.pressure-result>span:last-child {
+.archimedes-result>span:nth-child(3) {
     font-size:11px;
     color:var(--teal)
+}
+
+.archimedes-result small {
+    font-size: 10px;
+    color: var(--muted)
 }
 
 .insight {
@@ -1040,6 +1076,13 @@ summary::-webkit-details-marker {
     .vessels {
         grid-template-columns:1fr
     }
+    .activity-tabs {
+        gap:16px;
+        overflow-x:auto
+    }
+    .activity-tab {
+        flex:0 0 auto
+    }
     .vessel-card {
         padding:22px
     }
@@ -1071,13 +1114,13 @@ summary::-webkit-details-marker {
     left: 50%;
     bottom: 0;
     transform: translateX(-50%);
-    width: 26px;
-    height: 26px;
-    background-color: #dc3545;
-    border: 2px solid #a71d2a;
+    width: 42px;
+    height: 42px;
+    background-color: #9b6849;
+    border: 3px solid #79503a;
     border-radius: 50%;
     z-index: 2;
-    transition: bottom 0.3s ease;
+    transition: bottom 0.3s ease, background-color 0.3s ease;
 }
 .room-sidebar .back-link { margin-bottom: 18px; }
 .room-sidebar .share-code { margin-top: 0; }

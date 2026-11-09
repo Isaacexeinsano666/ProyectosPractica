@@ -1,7 +1,9 @@
 (() => {
     'use strict';
+
     const config = window.classroomConfig;
     const fluids = config.physics.fluids;
+    const objects = config.physics.objects;
     let state = { ...config.state };
     let revision = config.revision;
     let active = config.active;
@@ -11,6 +13,8 @@
     let retryTimer;
     let polling = false;
     const controls = [...document.querySelectorAll('.experiment-control')];
+    const tabs = [...document.querySelectorAll('.activity-tab')];
+    const panels = [...document.querySelectorAll('[data-activity-panel]')];
     const status = document.getElementById('connection-status');
     const dot = document.getElementById('connection-dot');
     const formatter = new Intl.NumberFormat('es-CL', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -19,7 +23,7 @@
     function connection(message, kind = '') {
         status.closest('.connection-block').hidden = kind === '';
         status.textContent = message;
-        dot.className = `live-dot ${kind}`;
+        dot.className = 'live-dot ' + kind;
     }
 
     function finish() {
@@ -34,23 +38,67 @@
         connection('La sesión ha finalizado', 'ended');
     }
 
-    function render() {
+    function renderTabs() {
+        tabs.forEach(tab => {
+            const selected = tab.dataset.activity === state.activity;
+            tab.classList.toggle('is-active', selected);
+            tab.setAttribute('aria-selected', String(selected));
+        });
+        panels.forEach(panel => {
+            panel.hidden = panel.dataset.activityPanel !== state.activity;
+        });
+    }
+
+    function renderArchimedes() {
         for (const i of [1, 2]) {
-            const fluid = fluids[state[`fluido${i}`]];
-            const height = Number(state[`altura${i}`]);
-            const pressure = fluid.densidad * config.physics.gravity * height;
-            document.getElementById(`selectLiquido${i}`).value = state[`fluido${i}`];
-            document.getElementById(`alturaLiquido${i}`).value = height;
-            document.getElementById(`valorAltura${i}`).textContent = `${number(height)} m`;
-            document.getElementById(`fill${i}`).style.height = `${height / 2 * 100}%`;
-            document.getElementById(`fill${i}`).style.backgroundColor = fluid.color;
-            // Recover the original density-based movement within the liquid.
-            const position = 85 - (fluid.densidad / 13546) * 80;
-            const rise = 1 - position / 100;
-            document.getElementById(`ball${i}`).style.bottom = `max(0px, calc(${height / 2 * 100 * rise}% - ${26 * rise}px))`;
-            document.getElementById(`presion${i}`).textContent = `${number(pressure)} Pa`;
-            document.getElementById(`kilopascales${i}`).textContent = `${number(pressure / 1000)} kPa`;
+            const fluid = fluids[state['arquimedes_fluido' + i]];
+            const object = objects[state['objeto' + i]];
+            const floating = object.densidad < fluid.densidad;
+            const neutral = object.densidad === fluid.densidad;
+            const displacedVolume = floating
+                ? object.volumen * object.densidad / fluid.densidad
+                : object.volumen;
+            const buoyantForce = fluid.densidad * config.physics.gravity * displacedVolume;
+            const submergedPart = displacedVolume / object.volumen;
+
+            document.getElementById('arquimedesLiquido' + i).value = state['arquimedes_fluido' + i];
+            document.getElementById('selectObjeto' + i).value = state['objeto' + i];
+            document.getElementById('arquimedesFill' + i).style.height = '72%';
+            document.getElementById('arquimedesFill' + i).style.backgroundColor = fluid.color;
+
+            const ball = document.getElementById('ball' + i);
+            ball.style.backgroundColor = object.color;
+            ball.style.borderColor = object.densidad > fluid.densidad ? '#4a5961' : '#79503a';
+            ball.style.bottom = floating
+                ? 'calc(72% - ' + (submergedPart * 42) + 'px)'
+                : neutral ? 'calc(36% - 21px)' : '0px';
+
+            document.getElementById('empuje' + i).textContent = number(buoyantForce) + ' N';
+            document.getElementById('estado' + i).textContent = floating ? 'Flota' : neutral ? 'Queda suspendido' : 'Se hunde';
+            document.getElementById('desplazado' + i).textContent = 'Líquido desplazado: ' + number(displacedVolume * 1000) + ' L';
         }
+    }
+
+    function renderHydrostatic() {
+        for (const i of [1, 2]) {
+            const fluid = fluids[state['hidrostatica_fluido' + i]];
+            const height = Number(state['altura' + i]);
+            const pressure = fluid.densidad * config.physics.gravity * height;
+
+            document.getElementById('hidrostaticaLiquido' + i).value = state['hidrostatica_fluido' + i];
+            document.getElementById('alturaLiquido' + i).value = height;
+            document.getElementById('valorAltura' + i).textContent = number(height) + ' m';
+            document.getElementById('hidrostaticaFill' + i).style.height = (height / 2 * 100) + '%';
+            document.getElementById('hidrostaticaFill' + i).style.backgroundColor = fluid.color;
+            document.getElementById('presion' + i).textContent = number(pressure) + ' Pa';
+            document.getElementById('kilopascales' + i).textContent = number(pressure / 1000) + ' kPa';
+        }
+    }
+
+    function render() {
+        renderTabs();
+        renderArchimedes();
+        renderHydrostatic();
     }
 
     async function request(url, options = {}) {
@@ -67,7 +115,7 @@
             },
         });
         if (!response.ok) {
-            const error = new Error(`HTTP ${response.status}`);
+            const error = new Error('HTTP ' + response.status);
             error.status = response.status;
             throw error;
         }
@@ -110,15 +158,7 @@
         if (pending && active) publish();
     }
 
-    function changed() {
-        if (!config.isOwner || !active) return;
-        state = {
-            fluido1: document.getElementById('selectLiquido1').value,
-            fluido2: document.getElementById('selectLiquido2').value,
-            altura1: Number(document.getElementById('alturaLiquido1').value),
-            altura2: Number(document.getElementById('alturaLiquido2').value),
-        };
-        render();
+    function queueChanges() {
         pending = { ...state };
         connection('Compartiendo cambios…');
         clearTimeout(retryTimer);
@@ -130,9 +170,32 @@
         }
     }
 
+    function changed() {
+        if (!config.isOwner || !active) return;
+        state = {
+            activity: state.activity,
+            arquimedes_fluido1: document.getElementById('arquimedesLiquido1').value,
+            arquimedes_fluido2: document.getElementById('arquimedesLiquido2').value,
+            objeto1: document.getElementById('selectObjeto1').value,
+            objeto2: document.getElementById('selectObjeto2').value,
+            hidrostatica_fluido1: document.getElementById('hidrostaticaLiquido1').value,
+            hidrostatica_fluido2: document.getElementById('hidrostaticaLiquido2').value,
+            altura1: Number(document.getElementById('alturaLiquido1').value),
+            altura2: Number(document.getElementById('alturaLiquido2').value),
+        };
+        render();
+        queueChanges();
+    }
+
+    function selectActivity(activity) {
+        if (!config.isOwner || !active || state.activity === activity) return;
+        state.activity = activity;
+        render();
+        queueChanges();
+    }
+
     async function poll() {
         if (!active || polling) return;
-        // A teacher must not overwrite unsent local edits with an older snapshot.
         if (config.isOwner && (sending || pending)) {
             setTimeout(poll, 1000);
             return;
@@ -157,7 +220,11 @@
         }
     }
 
-    controls.forEach(control => control.addEventListener(control.tagName === 'SELECT' ? 'change' : 'input', changed));
+    controls.filter(control => !control.classList.contains('activity-tab')).forEach(control => {
+        control.addEventListener(control.tagName === 'SELECT' ? 'change' : 'input', changed);
+    });
+    tabs.forEach(tab => tab.addEventListener('click', () => selectActivity(tab.dataset.activity)));
+
     const copy = document.getElementById('copy-code');
     if (copy) copy.addEventListener('click', async () => {
         try {
@@ -173,16 +240,23 @@
             copy.textContent = 'Código seleccionado · Ctrl+C';
         }
     });
-    // Best effort only: the normal write queue remains the source of truth.
+
     window.addEventListener('beforeunload', () => {
         if (config.isOwner && active && pending && !sending) {
             fetch(config.updateUrl, {
-                method: 'PUT', credentials: 'same-origin', keepalive: true,
-                headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content },
+                method: 'PUT',
+                credentials: 'same-origin',
+                keepalive: true,
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                },
                 body: JSON.stringify(pending),
             }).catch(() => {});
         }
     });
+
     render();
     if (active) poll(); else finish();
 })();
