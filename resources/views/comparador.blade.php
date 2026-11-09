@@ -54,7 +54,7 @@
                     <select id="hidrostaticaLiquido{{ $i }}" class="experiment-control" @disabled(!$isOwner || !$active)>
                         @foreach($physics['fluids'] as $key => $fluid)<option value="{{ $key }}" @selected($room->state['hidrostatica_fluido'.$i] === $key)>{{ $fluid['nombre'] }} · {{ $fluid['densidad'] }} kg/m³</option>@endforeach
                     </select>
-                    <div class="vessel-scene" aria-hidden="true"><div class="cup"><div id="hidrostaticaFill{{ $i }}" class="fill"><div class="fluid-surface"></div></div><div class="cup-lines"></div></div></div>
+                    <div class="vessel-scene" aria-hidden="true"><div class="cup"><div id="hidrostaticaFill{{ $i }}" class="fill"><div class="fluid-surface"></div></div><div class="cup-lines"><div id="ball{{ $i }}" class="ball"></div></div></div></div>
                     <div class="height-heading"><label for="alturaLiquido{{ $i }}">Profundidad</label><output id="valorAltura{{ $i }}" for="alturaLiquido{{ $i }}">1,00 m</output></div>
                     <input class="experiment-control height-range" type="range" id="alturaLiquido{{ $i }}" min="0.1" max="2" step="0.01" value="{{ $room->state['altura'.$i] }}" @disabled(!$isOwner || !$active)>
                     <div class="range-limits"><span>0,10 m</span><span>2,00 m</span></div>
