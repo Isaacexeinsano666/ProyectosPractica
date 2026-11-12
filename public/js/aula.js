@@ -12,6 +12,7 @@
     let debounceTimer;
     let retryTimer;
     let polling = false;
+    let pollTimer;
     const controls = [...document.querySelectorAll('.experiment-control')];
     const tabs = [...document.querySelectorAll('.activity-tab')];
     const panels = [...document.querySelectorAll('[data-activity-panel]')];
@@ -23,7 +24,7 @@
     function connection(message, kind = '') {
         status.closest('.connection-block').hidden = kind === '';
         status.textContent = message;
-        dot.className = 'live-dot ' + kind;
+        dot.dataset.kind = kind;
     }
 
     function finish() {
@@ -41,7 +42,6 @@
     function renderTabs() {
         tabs.forEach(tab => {
             const selected = tab.dataset.activity === state.activity;
-            tab.classList.toggle('is-active', selected);
             tab.setAttribute('aria-selected', String(selected));
         });
         panels.forEach(panel => {
@@ -49,20 +49,37 @@
         });
     }
 
+    // Las flechas nacen en el centro de la pelota (radio 21 px), así que el largo
+    // visible empieza en su borde. La mayor de las dos fuerzas sobresale ARROW_MAX px
+    // y la otra en proporción, para comparar empuje y peso a simple vista.
+    const BALL_RADIUS = 21;
+    const ARROW_MAX = 32;
+    const ARROW_MIN = 4;
+
     function renderArchimedes() {
+        const g = config.physics.gravity;
         for (const i of [1, 2]) {
             const fluid = fluids[state['arquimedes_fluido' + i]];
             const object = objects[state['objeto' + i]];
+            const mass = Number(state['masa' + i]);
+            // El material fija la densidad y la masa fija el volumen: V = m / ρ.
+            const volume = mass / object.densidad;
+            const weight = mass * g;
             const floating = object.densidad < fluid.densidad;
             const neutral = object.densidad === fluid.densidad;
-            const displacedVolume = floating
-                ? object.volumen * object.densidad / fluid.densidad
-                : object.volumen;
-            const buoyantForce = fluid.densidad * config.physics.gravity * displacedVolume;
-            const submergedPart = displacedVolume / object.volumen;
+            // Si flota, se sumerge solo lo necesario para que el empuje iguale al peso.
+            const displacedVolume = floating ? volume * object.densidad / fluid.densidad : volume;
+            const buoyantForce = fluid.densidad * g * displacedVolume;
+            const submergedPart = displacedVolume / volume;
 
             document.getElementById('arquimedesLiquido' + i).value = state['arquimedes_fluido' + i];
             document.getElementById('selectObjeto' + i).value = state['objeto' + i];
+            const massInput = document.getElementById('masa' + i);
+            // No se pisa lo que el profesor está escribiendo.
+            if (document.activeElement !== massInput) {
+                massInput.value = mass;
+                massInput.removeAttribute('aria-invalid');
+            }
             document.getElementById('arquimedesFill' + i).style.height = '72%';
             document.getElementById('arquimedesFill' + i).style.backgroundColor = fluid.color;
 
@@ -73,10 +90,27 @@
                 ? 'calc(72% - ' + (submergedPart * 42) + 'px)'
                 : neutral ? 'calc(36% - 21px)' : '0px';
 
+            const strongest = Math.max(buoyantForce, weight);
+            const arrowLength = force => BALL_RADIUS + Math.max(ARROW_MIN, ARROW_MAX * force / strongest) + 'px';
+            document.getElementById('flechaEmpuje' + i).style.height = arrowLength(buoyantForce);
+            document.getElementById('flechaPeso' + i).style.height = arrowLength(weight);
+
             document.getElementById('empuje' + i).textContent = number(buoyantForce) + ' N';
-            document.getElementById('estado' + i).textContent = floating ? 'Flota' : neutral ? 'Queda suspendido' : 'Se hunde';
-            document.getElementById('desplazado' + i).textContent = 'Líquido desplazado: ' + number(displacedVolume * 1000) + ' L';
+            document.getElementById('peso' + i).textContent = number(weight) + ' N';
+            document.getElementById('estado' + i).textContent = floating
+                ? 'Flota: el empuje iguala al peso'
+                : neutral ? 'Queda suspendido: el empuje iguala al peso' : 'Se hunde: el peso es mayor que el empuje';
+            document.getElementById('volumen' + i).textContent = 'Volumen del sólido: ' + number(volume * 1000)
+                + ' L · sumergido: ' + number(displacedVolume * 1000) + ' L';
         }
+    }
+
+    // Devuelve la masa escrita si es válida; si no, marca el campo y mantiene la anterior.
+    function massValue(i) {
+        const input = document.getElementById('masa' + i);
+        const valid = input.value !== '' && input.checkValidity();
+        input.setAttribute('aria-invalid', String(!valid));
+        return valid ? input.valueAsNumber : state['masa' + i];
     }
 
     function renderHydrostatic() {
@@ -90,6 +124,15 @@
             document.getElementById('valorAltura' + i).textContent = number(height) + ' m';
             document.getElementById('hidrostaticaFill' + i).style.height = (height / 2 * 100) + '%';
             document.getElementById('hidrostaticaFill' + i).style.backgroundColor = fluid.color;
+            // La pelota se sitúa dentro de la parte ocupada por el líquido. Una mayor
+            // densidad la acerca a la superficie y una mayor altura aumenta la zona
+            // disponible para que se desplace.
+            const originalPosition = 85 - (fluid.densidad / 13546) * 80;
+            const liquidLevel = height / 2 * 100;
+            const ballHeight = 14; // 26 px de los 184 px de alto del vaso, aproximadamente.
+            const desiredBottom = liquidLevel * (1 - originalPosition / 100) - 7;
+            const ballBottom = Math.max(0, Math.min(desiredBottom, liquidLevel - ballHeight));
+            document.getElementById('hidroBall' + i).style.bottom = ballBottom + '%';
             document.getElementById('presion' + i).textContent = number(pressure) + ' Pa';
             document.getElementById('kilopascales' + i).textContent = number(pressure / 1000) + ' kPa';
         }
@@ -130,6 +173,8 @@
             pending = null;
             controls.forEach(control => { control.disabled = true; });
             connection('Acceso perdido. Vuelve al inicio e ingresa el código.', 'warning');
+        } else if (error.status === 422) {
+            connection('No se pudo compartir el cambio: datos no válidos.', 'warning');
         } else {
             connection(config.isOwner ? 'Sin conexión. Los cambios están pendientes.' : 'Conexión interrumpida. Reconectando…', 'warning');
         }
@@ -147,11 +192,14 @@
             if (!snapshot.active) finish();
             else connection(pending ? 'Compartiendo cambios…' : 'En vivo · Cambios compartidos');
         } catch (error) {
-            if (!pending) pending = outgoing;
             failed(error);
-            clearTimeout(retryTimer);
-            if (active) retryTimer = setTimeout(publish, 2000);
-            return;
+            // Un 422 no se arregla reintentando el mismo envío: se descarta.
+            if (active && error.status !== 422) {
+                if (!pending) pending = outgoing;
+                clearTimeout(retryTimer);
+                retryTimer = setTimeout(publish, 2000);
+                return;
+            }
         } finally {
             sending = false;
         }
@@ -178,6 +226,8 @@
             arquimedes_fluido2: document.getElementById('arquimedesLiquido2').value,
             objeto1: document.getElementById('selectObjeto1').value,
             objeto2: document.getElementById('selectObjeto2').value,
+            masa1: massValue(1),
+            masa2: massValue(2),
             hidrostatica_fluido1: document.getElementById('hidrostaticaLiquido1').value,
             hidrostatica_fluido2: document.getElementById('hidrostaticaLiquido2').value,
             altura1: Number(document.getElementById('alturaLiquido1').value),
@@ -196,8 +246,10 @@
 
     async function poll() {
         if (!active || polling) return;
+        // Con la pestaña oculta no se consulta; visibilitychange lo reanuda.
+        if (document.hidden) return;
         if (config.isOwner && (sending || pending)) {
-            setTimeout(poll, 1000);
+            pollTimer = setTimeout(poll, 1000);
             return;
         }
         polling = true;
@@ -216,14 +268,24 @@
             failed(error);
         } finally {
             polling = false;
-            if (active) setTimeout(poll, 1000);
+            if (active) pollTimer = setTimeout(poll, 1000);
         }
     }
+
+    document.addEventListener('visibilitychange', () => {
+        if (document.hidden || !active) return;
+        clearTimeout(pollTimer);
+        poll();
+    });
 
     controls.filter(control => !control.classList.contains('activity-tab')).forEach(control => {
         control.addEventListener(control.tagName === 'SELECT' ? 'change' : 'input', changed);
     });
     tabs.forEach(tab => tab.addEventListener('click', () => selectActivity(tab.dataset.activity)));
+    // Al salir de un campo de masa inválido se restaura el último valor válido.
+    for (const i of [1, 2]) {
+        document.getElementById('masa' + i).addEventListener('blur', () => renderArchimedes());
+    }
 
     const copy = document.getElementById('copy-code');
     if (copy) copy.addEventListener('click', async () => {

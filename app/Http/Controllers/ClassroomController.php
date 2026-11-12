@@ -105,13 +105,16 @@ class ClassroomController extends Controller
             'arquimedes_fluido2' => ['required', Rule::in($fluids)],
             'objeto1' => ['required', Rule::in($objects)],
             'objeto2' => ['required', Rule::in($objects)],
+            'masa1' => ['required', 'numeric', 'between:0.01,100'],
+            'masa2' => ['required', 'numeric', 'between:0.01,100'],
             'hidrostatica_fluido1' => ['required', Rule::in($fluids)],
             'hidrostatica_fluido2' => ['required', Rule::in($fluids)],
             'altura1' => ['required', 'numeric', 'between:0.1,2'],
             'altura2' => ['required', 'numeric', 'between:0.1,2'],
         ]);
-        $state['altura1'] = round((float) $state['altura1'], 2);
-        $state['altura2'] = round((float) $state['altura2'], 2);
+        foreach (['altura1', 'altura2', 'masa1', 'masa2'] as $field) {
+            $state[$field] = round((float) $state[$field], 2);
+        }
         // The conditional write also protects against an end request racing this update.
         $written = ClassroomSession::whereKey($room->id)->whereNull('ended_at')
             ->where('expires_at', '>', now())->update([

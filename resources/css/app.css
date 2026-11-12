@@ -1,11 +1,71 @@
 @import 'tailwindcss';
 
-@source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
-@source '../../storage/framework/views/*.php';
-@source '../**/*.blade.php';
-@source '../**/*.js';
-
+/* Colores, fuentes y puntos de corte del diseño del aula. */
 @theme {
-    --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
-        'Segoe UI Symbol', 'Noto Color Emoji';
+    --font-sans: Inter, "Segoe UI", Arial, sans-serif;
+    --font-serif: Georgia, "Times New Roman", serif;
+
+    --color-ink: #172e37;
+    --color-muted: #64777c;
+    --color-teal: #137c6b;
+    --color-teal-dark: #0c6557;
+    --color-line: #dde5e1;
+    --color-paper: #f5f7f3;
+    --color-danger: #ad403b;
+
+    /* Se usan como max-phone:, max-tablet:, max-laptop: (≤450px, ≤780px, ≤1100px). */
+    --breakpoint-phone: 451px;
+    --breakpoint-tablet: 781px;
+    --breakpoint-laptop: 1101px;
+}
+
+/* Estilos por defecto de los elementos de formulario y foco. */
+@layer base {
+    body {
+        line-height: normal;
+        font-synthesis: none;
+    }
+
+    p {
+        line-height: 1.6;
+    }
+
+    button, a, input, select, summary {
+        -webkit-tap-highlight-color: transparent;
+    }
+
+    button, summary {
+        cursor: pointer;
+    }
+
+    button:disabled, select:disabled, input:disabled {
+        cursor: default;
+    }
+
+    button:disabled {
+        opacity: .55;
+    }
+
+    input, select {
+        width: 100%;
+        min-width: 0;
+        border: 1px solid #cbd8d2;
+        border-radius: 10px;
+        padding: 13px 14px;
+        background-color: var(--color-white);
+        color: var(--color-ink);
+    }
+
+    :is(input, select, button, a, summary):focus-visible {
+        outline: 3px solid #4bbaa2;
+        outline-offset: 4px;
+    }
+
+    summary {
+        list-style: none;
+    }
+
+    summary::-webkit-details-marker {
+        display: none;
+    }
 }

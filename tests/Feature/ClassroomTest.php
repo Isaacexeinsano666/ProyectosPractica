@@ -101,6 +101,8 @@ class ClassroomTest extends TestCase
             'arquimedes_fluido2' => 'alcohol',
             'objeto1' => 'hielo',
             'objeto2' => 'aluminio',
+            'masa1' => 2.5,
+            'masa2' => 0.75,
             'hidrostatica_fluido1' => 'agua',
             'hidrostatica_fluido2' => 'aceite',
             'altura1' => 1.75,
@@ -111,6 +113,7 @@ class ClassroomTest extends TestCase
             ->assertJsonPath('state.arquimedes_fluido1', 'mercurio')->assertJsonPath('revision', 1);
         $this->withSession($this->student($room))->getJson(route('classroom.state', $room->code))
             ->assertOk()->assertJsonPath('state.objeto1', 'hielo')->assertJsonPath('state.objeto2', 'aluminio')
+            ->assertJsonPath('state.masa1', 2.5)->assertJsonPath('state.masa2', 0.75)
             ->assertJsonPath('active', true)->assertJsonMissingPath('owner_hash');
         $this->withSession(['classroom_owners' => [], 'classroom_members' => []]);
         $this->post('/unirse', ['code' => $room->code])->assertRedirect();
@@ -126,12 +129,38 @@ class ClassroomTest extends TestCase
             'arquimedes_fluido2' => 'agua',
             'objeto1' => 'piedra',
             'objeto2' => 'aluminio',
+            'masa1' => 1,
+            'masa2' => 1,
             'hidrostatica_fluido1' => 'agua',
             'hidrostatica_fluido2' => 'aceite',
             'altura1' => 1,
             'altura2' => 1,
         ])->assertUnprocessable()->assertJsonValidationErrors(['activity', 'arquimedes_fluido1', 'objeto1']);
         $this->assertSame(0, $room->fresh()->revision);
+    }
+
+    public function test_mass_must_be_between_limits(): void
+    {
+        $room = $this->room();
+        $state = array_merge(config('physics.initial_state'), ['masa1' => 0, 'masa2' => 'abc']);
+        $this->withSession($this->teacher($room))->putJson(route('classroom.update', $room->code), $state)
+            ->assertUnprocessable()->assertJsonValidationErrors(['masa1', 'masa2']);
+        $state = array_merge(config('physics.initial_state'), ['masa1' => 100.5]);
+        $this->putJson(route('classroom.update', $room->code), $state)
+            ->assertUnprocessable()->assertJsonValidationErrors(['masa1']);
+        $this->assertSame(0, $room->fresh()->revision);
+    }
+
+    public function test_rooms_created_before_mass_existed_get_default_mass(): void
+    {
+        $oldState = config('physics.initial_state');
+        unset($oldState['masa1'], $oldState['masa2']);
+        $room = $this->room(['state' => $oldState]);
+        $this->withSession($this->student($room))->getJson(route('classroom.state', $room->code))
+            ->assertOk()->assertJsonPath('state.masa1', 1)->assertJsonPath('state.masa2', 1);
+        $this->get(route('classroom.show', $room->code))->assertOk()
+            ->assertSee('id="masa1"', false)->assertSee('Peso del sólido')->assertSee('Densidad del líquido')
+            ->assertSee('Volumen del líquido desplazado o volumen del sólido sumergido');
     }
 
     public function test_ending_a_class_notifies_members_and_blocks_updates_and_new_joins(): void
@@ -143,6 +172,21 @@ class ClassroomTest extends TestCase
         $this->withSession($this->student($room))->getJson(route('classroom.state', $room->code))
             ->assertOk()->assertJsonPath('active', false);
         $this->post('/unirse', ['code' => $room->code])->assertSessionHasErrors('code');
+    }
+
+    public function test_old_ended_and_expired_rooms_are_pruned(): void
+    {
+        $live = $this->room();
+        $justEnded = $this->room(['code' => 'ENDED001', 'ended_at' => now()]);
+        $oldEnded = $this->room(['code' => 'ENDED002', 'ended_at' => now()->subDays(2)]);
+        $oldExpired = $this->room(['code' => 'EXPIRED1', 'expires_at' => now()->subDays(2)]);
+
+        $this->artisan('model:prune', ['--model' => [ClassroomSession::class]])->assertSuccessful();
+
+        $this->assertModelExists($live);
+        $this->assertModelExists($justEnded);
+        $this->assertModelMissing($oldEnded);
+        $this->assertModelMissing($oldExpired);
     }
 
     public function test_sessions_are_isolated_and_expire_after_eight_hours(): void

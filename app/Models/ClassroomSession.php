@@ -2,11 +2,25 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Prunable;
 
 class ClassroomSession extends Model
 {
+    use Prunable;
+
     protected $guarded = [];
+
+    /**
+     * Salas finalizadas o caducadas hace más de un día (se borran con `php artisan model:prune`).
+     */
+    public function prunable(): Builder
+    {
+        $cutoff = now()->subDay();
+
+        return static::where('expires_at', '<', $cutoff)->orWhere('ended_at', '<', $cutoff);
+    }
 
     protected $hidden = ['owner_hash'];
 

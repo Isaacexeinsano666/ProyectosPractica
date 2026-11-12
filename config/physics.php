@@ -11,11 +11,12 @@ return [
         'parafina' => ['nombre' => 'Parafina', 'densidad' => 810, 'color' => '#b1a996'],
         'gasolina' => ['nombre' => 'Gasolina', 'densidad' => 720, 'color' => '#fcd572'],
     ],
+    // El volumen de cada sólido se calcula a partir de la masa elegida: V = m / densidad.
     'objects' => [
-        'madera' => ['nombre' => 'Madera', 'densidad' => 600, 'color' => '#9b6849', 'volumen' => 0.001],
-        'hielo' => ['nombre' => 'Hielo', 'densidad' => 917, 'color' => '#dcecf5', 'volumen' => 0.001],
-        'plastico' => ['nombre' => 'Plástico', 'densidad' => 1100, 'color' => '#e16d55', 'volumen' => 0.001],
-        'aluminio' => ['nombre' => 'Aluminio', 'densidad' => 2700, 'color' => '#aab5bd', 'volumen' => 0.001],
+        'madera' => ['nombre' => 'Madera', 'densidad' => 600, 'color' => '#9b6849'],
+        'hielo' => ['nombre' => 'Hielo', 'densidad' => 917, 'color' => '#dcecf5'],
+        'plastico' => ['nombre' => 'Plástico', 'densidad' => 1100, 'color' => '#e16d55'],
+        'aluminio' => ['nombre' => 'Aluminio', 'densidad' => 2700, 'color' => '#aab5bd'],
     ],
     'initial_state' => [
         'activity' => 'arquimedes',
@@ -23,6 +24,8 @@ return [
         'arquimedes_fluido2' => 'aceite',
         'objeto1' => 'madera',
         'objeto2' => 'aluminio',
+        'masa1' => 1,
+        'masa2' => 1,
         'hidrostatica_fluido1' => 'agua',
         'hidrostatica_fluido2' => 'aceite',
         'altura1' => 1,
