@@ -10,6 +10,12 @@ class ClassroomSession extends Model
 {
     use Prunable;
 
+    /**
+     * Minutos sin cambios del profesor tras los que la clase se cierra sola.
+     * Cada cambio publicado vuelve a dar este margen.
+     */
+    public const IDLE_MINUTES = 60;
+
     protected $guarded = [];
 
     /**
@@ -36,6 +42,12 @@ class ClassroomSession extends Model
     public function isActive(): bool
     {
         return $this->ended_at === null && $this->expires_at->isFuture();
+    }
+
+    /** Segundos que quedan antes del cierre automático (0 si ya está cerrada). */
+    public function secondsUntilExpiry(): int
+    {
+        return $this->isActive() ? (int) max(0, now()->diffInSeconds($this->expires_at)) : 0;
     }
 
     public function displayCode(): string

@@ -41,6 +41,9 @@
             <strong id="room-code" class="mt-[11px] mb-[15px] block text-[24px] font-medium tracking-[2px] tabular-nums">{{ $room->displayCode() }}</strong>
             @if($isOwner)<button type="button" id="copy-code" class="inline-flex min-h-[38px] w-full items-center justify-center gap-3 rounded-[10px] bg-[#e6f2e8] px-3 py-[9px] text-[11px] font-[650] whitespace-nowrap text-[#21483d] transition-[background,transform] duration-150 hover:-translate-y-px">Copiar código <span aria-hidden="true">⧉</span></button>@endif
         </div>
+        @if($isOwner && $active)
+        <p id="idle-timer" class="mt-4 mb-0 text-[11px] leading-[1.5] text-[#a9c2b9] data-[warning]:text-[#e5b253]" role="status" aria-live="polite">Cierre automático por inactividad en {{ intdiv($room->secondsUntilExpiry() + 59, 60) }} min</p>
+        @endif
         <div class="connection-block flex items-center gap-2 py-[19px] text-[11px] leading-[1.5] text-[#c3d7cb]" @if($active) hidden @endif>
             <span id="connection-dot" class="inline-block size-[7px] shrink-0 rounded-full bg-[#79c9a5] data-[kind=warning]:bg-[#e5b253] data-[kind=ended]:bg-[#94a49d]"></span>
             <span id="connection-status" role="status" aria-live="polite">{{ $active ? '' : 'La sesión ha finalizado' }}</span>
@@ -152,6 +155,7 @@
         'code' => $room->displayCode(),
         'state' => $room->state,
         'revision' => $room->revision,
+        'expiresIn' => $room->secondsUntilExpiry(),
         'physics' => $physics,
         'stateUrl' => route('classroom.state', $room->code),
         'updateUrl' => route('classroom.update', $room->code),

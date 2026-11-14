@@ -16,6 +16,10 @@
     const controls = [...document.querySelectorAll('.experiment-control')];
     const tabs = [...document.querySelectorAll('.activity-tab')];
     const panels = [...document.querySelectorAll('[data-activity-panel]')];
+    // Momento (reloj local) en que la clase se cerrará por inactividad. Se calcula a
+    // partir de los segundos que informa el servidor, para no depender de la hora del PC.
+    let deadline = Date.now() + config.expiresIn * 1000;
+    const idleTimer = document.getElementById('idle-timer');
     const status = document.getElementById('connection-status');
     const dot = document.getElementById('connection-dot');
     const formatter = new Intl.NumberFormat('es-CL', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -27,8 +31,25 @@
         dot.dataset.kind = kind;
     }
 
+    function renderIdleTimer() {
+        if (!idleTimer) return;
+        idleTimer.hidden = !active;
+        const minutes = Math.max(0, Math.ceil((deadline - Date.now()) / 60000));
+        const warning = minutes <= 5;
+        idleTimer.toggleAttribute('data-warning', warning);
+        idleTimer.textContent = warning
+            ? 'La clase se cerrará por inactividad en ' + minutes + ' min. Haz un cambio para mantenerla abierta.'
+            : 'Cierre automático por inactividad en ' + minutes + ' min';
+    }
+
+    function updateDeadline(snapshot) {
+        deadline = Date.now() + snapshot.expires_in * 1000;
+        renderIdleTimer();
+    }
+
     function finish() {
         active = false;
+        if (idleTimer) idleTimer.hidden = true;
         pending = null;
         clearTimeout(retryTimer);
         clearTimeout(debounceTimer);
@@ -189,6 +210,7 @@
         try {
             const snapshot = await request(config.updateUrl, { method: 'PUT', body: JSON.stringify(outgoing) });
             revision = snapshot.revision;
+            updateDeadline(snapshot);
             if (!snapshot.active) finish();
             else connection(pending ? 'Compartiendo cambios…' : 'En vivo · Cambios compartidos');
         } catch (error) {
@@ -255,6 +277,7 @@
         polling = true;
         try {
             const snapshot = await request(config.stateUrl);
+            updateDeadline(snapshot);
             if (!(config.isOwner && (sending || pending))) {
                 if (snapshot.revision > revision) {
                     state = snapshot.state;
@@ -320,5 +343,7 @@
     });
 
     render();
+    renderIdleTimer();
+    if (idleTimer) setInterval(renderIdleTimer, 15000);
     if (active) poll(); else finish();
 })();

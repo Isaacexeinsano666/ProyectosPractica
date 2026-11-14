@@ -35,7 +35,7 @@ class ClassroomController extends Controller
                     'title' => 'Laboratorio de fluidos',
                     'owner_hash' => hash('sha256', $secret),
                     'state' => config('physics.initial_state'),
-                    'expires_at' => now()->addHours(8),
+                    'expires_at' => now()->addMinutes(ClassroomSession::IDLE_MINUTES),
                 ]);
                 break;
             } catch (UniqueConstraintViolationException $exception) {
@@ -116,10 +116,12 @@ class ClassroomController extends Controller
             $state[$field] = round((float) $state[$field], 2);
         }
         // The conditional write also protects against an end request racing this update.
+        // Each change by the teacher resets the inactivity timer.
         $written = ClassroomSession::whereKey($room->id)->whereNull('ended_at')
             ->where('expires_at', '>', now())->update([
                 'state' => json_encode($state, JSON_THROW_ON_ERROR),
                 'revision' => DB::raw('revision + 1'),
+                'expires_at' => now()->addMinutes(ClassroomSession::IDLE_MINUTES),
                 'updated_at' => now(),
             ]);
         abort_unless($written, 410, 'La sesión ha finalizado.');
@@ -154,6 +156,7 @@ class ClassroomController extends Controller
             'state' => $this->normalizedState($room->state),
             'revision' => $room->revision,
             'active' => $room->isActive(),
+            'expires_in' => $room->secondsUntilExpiry(),
         ])->header('Cache-Control', 'no-store, private');
     }
 

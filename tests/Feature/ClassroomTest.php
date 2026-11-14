@@ -17,7 +17,7 @@ class ClassroomTest extends TestCase
             'title' => 'Clase de fluidos',
             'owner_hash' => hash('sha256', 'teacher-secret'),
             'state' => config('physics.initial_state'),
-            'expires_at' => now()->addHours(8),
+            'expires_at' => now()->addMinutes(ClassroomSession::IDLE_MINUTES),
         ], $attributes));
     }
 
@@ -189,14 +189,54 @@ class ClassroomTest extends TestCase
         $this->assertModelMissing($oldExpired);
     }
 
-    public function test_sessions_are_isolated_and_expire_after_eight_hours(): void
+    public function test_sessions_are_isolated(): void
     {
         $room = $this->room();
         $other = $this->room(['code' => 'OTHER123']);
         $this->withSession($this->teacher($room))->putJson(route('classroom.update', $other->code), config('physics.initial_state'))
             ->assertForbidden();
         $this->withSession($this->student($room))->getJson(route('classroom.state', $other->code))->assertForbidden();
-        $this->travel(9)->hours();
-        $this->getJson(route('classroom.state', $room->code))->assertOk()->assertJsonPath('active', false);
+    }
+
+    public function test_new_room_closes_after_one_hour_without_changes(): void
+    {
+        $this->freezeSecond();
+        $this->post('/sesiones');
+        $room = ClassroomSession::firstOrFail();
+        $this->getJson(route('classroom.state', $room->code))
+            ->assertJsonPath('active', true)->assertJsonPath('expires_in', 3600);
+        $this->travel(59)->minutes();
+        $this->getJson(route('classroom.state', $room->code))->assertJsonPath('active', true);
+        $this->travel(2)->minutes();
+        $this->getJson(route('classroom.state', $room->code))
+            ->assertJsonPath('active', false)->assertJsonPath('expires_in', 0);
+        $this->putJson(route('classroom.update', $room->code), config('physics.initial_state'))->assertGone();
+        $this->post('/unirse', ['code' => $room->code])->assertSessionHasErrors('code');
+    }
+
+    public function test_each_teacher_change_restarts_the_inactivity_timer(): void
+    {
+        $this->freezeSecond();
+        $room = $this->room();
+        $this->withSession($this->teacher($room));
+        $this->travel(50)->minutes();
+        $this->putJson(route('classroom.update', $room->code), config('physics.initial_state'))
+            ->assertOk()->assertJsonPath('expires_in', 3600);
+        $this->travel(50)->minutes();
+        $this->getJson(route('classroom.state', $room->code))->assertJsonPath('active', true);
+        $this->travel(11)->minutes();
+        $this->getJson(route('classroom.state', $room->code))->assertJsonPath('active', false);
+    }
+
+    public function test_student_polling_does_not_keep_the_class_open(): void
+    {
+        $room = $this->room();
+        $this->withSession($this->student($room));
+        foreach ([20, 20, 20] as $minutes) {
+            $this->travel($minutes)->minutes();
+            $this->getJson(route('classroom.state', $room->code))->assertOk();
+        }
+        $this->travel(1)->minutes();
+        $this->getJson(route('classroom.state', $room->code))->assertJsonPath('active', false);
     }
 }
