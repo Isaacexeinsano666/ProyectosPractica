@@ -45,11 +45,25 @@
     function updateDeadline(snapshot) {
         deadline = Date.now() + snapshot.expires_in * 1000;
         renderIdleTimer();
+        if (snapshot.students) renderStudents(snapshot.students);
+    }
+
+    // Solo existe para el profesor; el servidor no envía el conteo a los alumnos.
+    const studentCount = document.getElementById('student-count');
+
+    function renderStudents({ online, joined }) {
+        if (!studentCount) return;
+        document.getElementById('student-online').textContent =
+            online === 1 ? '1 alumno conectado' : online + ' alumnos conectados';
+        document.getElementById('student-joined').textContent = joined === 0
+            ? 'Aún no se ha unido nadie. Comparte el código.'
+            : joined === 1 ? '1 se unió en total' : joined + ' se unieron en total';
     }
 
     function finish() {
         active = false;
         if (idleTimer) idleTimer.hidden = true;
+        if (studentCount) studentCount.hidden = true;
         pending = null;
         clearTimeout(retryTimer);
         clearTimeout(debounceTimer);

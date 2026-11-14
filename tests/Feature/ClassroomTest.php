@@ -180,8 +180,13 @@ class ClassroomTest extends TestCase
         $justEnded = $this->room(['code' => 'ENDED001', 'ended_at' => now()]);
         $oldEnded = $this->room(['code' => 'ENDED002', 'ended_at' => now()->subDays(2)]);
         $oldExpired = $this->room(['code' => 'EXPIRED1', 'expires_at' => now()->subDays(2)]);
+        $oldEnded->members()->create(['member_key' => 'alumno-viejo', 'last_seen_at' => now()->subDays(2)]);
+        $live->members()->create(['member_key' => 'alumno-actual', 'last_seen_at' => now()]);
 
         $this->artisan('model:prune', ['--model' => [ClassroomSession::class]])->assertSuccessful();
+
+        $this->assertDatabaseMissing('classroom_members', ['member_key' => 'alumno-viejo']);
+        $this->assertDatabaseHas('classroom_members', ['member_key' => 'alumno-actual']);
 
         $this->assertModelExists($live);
         $this->assertModelExists($justEnded);
@@ -226,6 +231,51 @@ class ClassroomTest extends TestCase
         $this->getJson(route('classroom.state', $room->code))->assertJsonPath('active', true);
         $this->travel(11)->minutes();
         $this->getJson(route('classroom.state', $room->code))->assertJsonPath('active', false);
+    }
+
+    private function studentBrowser(ClassroomSession $room, string $key): array
+    {
+        return $this->student($room) + ['classroom_presence' => [$room->id => ['key' => $key, 'at' => 0]]];
+    }
+
+    public function test_teacher_sees_how_many_students_are_connected(): void
+    {
+        $room = $this->room();
+        $this->withSession($this->teacher($room))->getJson(route('classroom.state', $room->code))
+            ->assertJsonPath('students.online', 0)->assertJsonPath('students.joined', 0);
+
+        foreach (['alumno-a', 'alumno-b', 'alumno-c'] as $key) {
+            $this->withSession($this->studentBrowser($room, $key))
+                ->getJson(route('classroom.state', $room->code))->assertOk()->assertJsonMissingPath('students');
+        }
+        // El mismo alumno consultando muchas veces sigue contando como uno.
+        $this->withSession($this->studentBrowser($room, 'alumno-a'))->getJson(route('classroom.state', $room->code));
+
+        $this->withSession($this->teacher($room))->getJson(route('classroom.state', $room->code))
+            ->assertJsonPath('students.online', 3)->assertJsonPath('students.joined', 3);
+        $this->get(route('classroom.show', $room->code))->assertSee('3 alumnos conectados');
+    }
+
+    public function test_students_who_stop_polling_are_no_longer_counted_as_connected(): void
+    {
+        $room = $this->room();
+        $this->withSession($this->studentBrowser($room, 'alumno-a'))->getJson(route('classroom.state', $room->code));
+        $this->withSession($this->studentBrowser($room, 'alumno-b'))->getJson(route('classroom.state', $room->code));
+        $this->travel(ClassroomSession::ONLINE_SECONDS + 5)->seconds();
+        // Solo "alumno-b" sigue con la página abierta.
+        $this->withSession($this->studentBrowser($room, 'alumno-b'))->getJson(route('classroom.state', $room->code));
+
+        $this->withSession($this->teacher($room))->getJson(route('classroom.state', $room->code))
+            ->assertJsonPath('students.online', 1)->assertJsonPath('students.joined', 2);
+    }
+
+    public function test_joining_counts_the_student_and_teacher_is_not_counted(): void
+    {
+        $room = $this->room();
+        $this->post('/unirse', ['code' => $room->code])->assertRedirect();
+        $this->withSession($this->teacher($room))->getJson(route('classroom.state', $room->code))
+            ->assertJsonPath('students.online', 1)->assertJsonPath('students.joined', 1);
+        $this->get(route('classroom.show', $room->code))->assertSee('1 alumno conectado');
     }
 
     public function test_student_polling_does_not_keep_the_class_open(): void

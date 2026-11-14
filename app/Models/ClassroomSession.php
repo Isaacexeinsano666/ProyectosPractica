@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Prunable;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class ClassroomSession extends Model
 {
@@ -15,6 +16,23 @@ class ClassroomSession extends Model
      * Cada cambio publicado vuelve a dar este margen.
      */
     public const IDLE_MINUTES = 60;
+
+    /** Un alumno cuenta como conectado si su página consultó la clase en estos segundos. */
+    public const ONLINE_SECONDS = 40;
+
+    public function members(): HasMany
+    {
+        return $this->hasMany(ClassroomMember::class);
+    }
+
+    /** @return array{online: int, joined: int} */
+    public function studentCounts(): array
+    {
+        return [
+            'online' => $this->members()->where('last_seen_at', '>=', now()->subSeconds(self::ONLINE_SECONDS))->count(),
+            'joined' => $this->members()->count(),
+        ];
+    }
 
     protected $guarded = [];
 

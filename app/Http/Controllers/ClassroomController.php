@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\ClassroomMember;
 use App\Models\ClassroomSession;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\JsonResponse;
@@ -15,6 +16,9 @@ use Illuminate\View\View;
 
 class ClassroomController extends Controller
 {
+    /** Cada alumno renueva su "visto por última vez" como mucho una vez cada estos segundos. */
+    private const PRESENCE_WRITE_SECONDS = 15;
+
     public function home(Request $request): View
     {
         $owned = array_keys($request->session()->get('classroom_owners', []));
@@ -66,6 +70,7 @@ class ClassroomController extends Controller
             ]);
         }
         $request->session()->put("classroom_members.{$room->id}", true);
+        $this->trackPresence($request, $room);
 
         return redirect()->route('classroom.show', $room->code);
     }
@@ -76,21 +81,25 @@ class ClassroomController extends Controller
             return redirect()->route('home')->with('notice', 'Ingresa el código de tu clase para unirte.');
         }
 
+        $this->trackPresence($request, $room);
         $room->state = $this->normalizedState($room->state);
+        $isOwner = $this->isOwner($request, $room);
 
         return view('comparador', [
             'room' => $room,
-            'isOwner' => $this->isOwner($request, $room),
+            'isOwner' => $isOwner,
             'active' => $room->isActive(),
             'physics' => config('physics'),
+            'students' => $isOwner ? $room->studentCounts() : null,
         ]);
     }
 
     public function state(Request $request, ClassroomSession $room): JsonResponse
     {
         abort_unless($this->isMember($request, $room), 403);
+        $this->trackPresence($request, $room);
 
-        return $this->snapshot($room);
+        return $this->snapshot($room, $this->isOwner($request, $room));
     }
 
     public function update(Request $request, ClassroomSession $room): JsonResponse
@@ -126,7 +135,7 @@ class ClassroomController extends Controller
             ]);
         abort_unless($written, 410, 'La sesión ha finalizado.');
 
-        return $this->snapshot($room->refresh());
+        return $this->snapshot($room->refresh(), true);
     }
 
     public function end(Request $request, ClassroomSession $room): RedirectResponse
@@ -150,14 +159,46 @@ class ClassroomController extends Controller
             || $request->session()->get("classroom_members.{$room->id}") === true;
     }
 
-    private function snapshot(ClassroomSession $room): JsonResponse
+    /**
+     * Marca al alumno como conectado. Cada navegador recibe una clave aleatoria en su
+     * sesión, y la base de datos solo se escribe cada PRESENCE_WRITE_SECONDS.
+     */
+    private function trackPresence(Request $request, ClassroomSession $room): void
     {
-        return response()->json([
+        if ($this->isOwner($request, $room) || ! $room->isActive()) {
+            return;
+        }
+        $sessionKey = "classroom_presence.{$room->id}";
+        $presence = $request->session()->get($sessionKey);
+        if (! is_array($presence) || ! is_string($presence['key'] ?? null)) {
+            $presence = ['key' => Str::random(40), 'at' => 0];
+        }
+        if (now()->timestamp - (int) $presence['at'] < self::PRESENCE_WRITE_SECONDS) {
+            return;
+        }
+        ClassroomMember::upsert(
+            [['classroom_session_id' => $room->id, 'member_key' => $presence['key'], 'last_seen_at' => now()]],
+            ['classroom_session_id', 'member_key'],
+            ['last_seen_at'],
+        );
+        $presence['at'] = now()->timestamp;
+        $request->session()->put($sessionKey, $presence);
+    }
+
+    private function snapshot(ClassroomSession $room, bool $forOwner = false): JsonResponse
+    {
+        $data = [
             'state' => $this->normalizedState($room->state),
             'revision' => $room->revision,
             'active' => $room->isActive(),
             'expires_in' => $room->secondsUntilExpiry(),
-        ])->header('Cache-Control', 'no-store, private');
+        ];
+        // Solo el profesor recibe cuántos alumnos hay.
+        if ($forOwner) {
+            $data['students'] = $room->studentCounts();
+        }
+
+        return response()->json($data)->header('Cache-Control', 'no-store, private');
     }
 
     private function normalizedState(mixed $state): array

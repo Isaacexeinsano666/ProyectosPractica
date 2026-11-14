@@ -42,6 +42,13 @@
             @if($isOwner)<button type="button" id="copy-code" class="inline-flex min-h-[38px] w-full items-center justify-center gap-3 rounded-[10px] bg-[#e6f2e8] px-3 py-[9px] text-[11px] font-[650] whitespace-nowrap text-[#21483d] transition-[background,transform] duration-150 hover:-translate-y-px">Copiar código <span aria-hidden="true">⧉</span></button>@endif
         </div>
         @if($isOwner && $active)
+        <div id="student-count" class="mt-4 rounded-xl border border-[#41615b] px-[13px] py-3" role="status" aria-live="polite">
+            <p class="m-0 flex items-center gap-2 text-[13px] font-[650] leading-[1.4] text-[#e3ede6]">
+                <svg class="size-4 shrink-0 text-[#88b9a4]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                <span id="student-online">{{ $students['online'] === 1 ? '1 alumno conectado' : $students['online'].' alumnos conectados' }}</span>
+            </p>
+            <p id="student-joined" class="mt-1 mb-0 text-[10px] leading-[1.4] text-[#a9c2b9]">{{ $students['joined'] === 0 ? 'Aún no se ha unido nadie. Comparte el código.' : ($students['joined'] === 1 ? '1 se unió en total' : $students['joined'].' se unieron en total') }}</p>
+        </div>
         <p id="idle-timer" class="mt-4 mb-0 text-[11px] leading-[1.5] text-[#a9c2b9] data-[warning]:text-[#e5b253]" role="status" aria-live="polite">Cierre automático por inactividad en {{ intdiv($room->secondsUntilExpiry() + 59, 60) }} min</p>
         @endif
         <div class="connection-block flex items-center gap-2 py-[19px] text-[11px] leading-[1.5] text-[#c3d7cb]" @if($active) hidden @endif>
