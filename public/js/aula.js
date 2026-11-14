@@ -46,7 +46,13 @@
         deadline = Date.now() + snapshot.expires_in * 1000;
         renderIdleTimer();
         if (snapshot.students) renderStudents(snapshot.students);
+        // La pizarra vuelve a pedir sus trazos solo si cambiaron.
+        window.classroomBoard?.onRevision(snapshot.board_revision);
     }
+
+    // Botón del panel lateral (solo profesor): lleva a toda la clase a la pizarra y de vuelta.
+    const boardToggle = document.getElementById('board-toggle');
+    let lastExperiment = state.activity === 'pizarra' ? 'arquimedes' : state.activity;
 
     // Solo existe para el profesor; el servidor no envía el conteo a los alumnos.
     const studentCount = document.getElementById('student-count');
@@ -64,6 +70,8 @@
         active = false;
         if (idleTimer) idleTimer.hidden = true;
         if (studentCount) studentCount.hidden = true;
+        if (boardToggle) boardToggle.hidden = true;
+        window.classroomBoard?.finish();
         pending = null;
         clearTimeout(retryTimer);
         clearTimeout(debounceTimer);
@@ -82,6 +90,14 @@
         panels.forEach(panel => {
             panel.hidden = panel.dataset.activityPanel !== state.activity;
         });
+        const onBoard = state.activity === 'pizarra';
+        if (!onBoard) lastExperiment = state.activity;
+        if (boardToggle) {
+            boardToggle.setAttribute('aria-pressed', String(onBoard));
+            document.getElementById('board-toggle-label').textContent =
+                onBoard ? 'Volver al experimento' : 'Abrir pizarra para la clase';
+        }
+        window.classroomBoard?.setActive(onBoard);
     }
 
     // Las flechas nacen en el centro de la pelota (radio 21 px), así que el largo
@@ -319,6 +335,9 @@
         control.addEventListener(control.tagName === 'SELECT' ? 'change' : 'input', changed);
     });
     tabs.forEach(tab => tab.addEventListener('click', () => selectActivity(tab.dataset.activity)));
+    boardToggle?.addEventListener('click', () => {
+        selectActivity(state.activity === 'pizarra' ? lastExperiment : 'pizarra');
+    });
     // Al salir de un campo de masa inválido se restaura el último valor válido.
     for (const i of [1, 2]) {
         document.getElementById('masa' + i).addEventListener('blur', () => renderArchimedes());

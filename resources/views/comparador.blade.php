@@ -42,6 +42,11 @@
             @if($isOwner)<button type="button" id="copy-code" class="inline-flex min-h-[38px] w-full items-center justify-center gap-3 rounded-[10px] bg-[#e6f2e8] px-3 py-[9px] text-[11px] font-[650] whitespace-nowrap text-[#21483d] transition-[background,transform] duration-150 hover:-translate-y-px">Copiar código <span aria-hidden="true">⧉</span></button>@endif
         </div>
         @if($isOwner && $active)
+        {{-- Abre la pizarra para toda la clase: los alumnos pasan a verla automáticamente. --}}
+        <button type="button" id="board-toggle" aria-pressed="false" class="mt-4 inline-flex min-h-[42px] w-full items-center justify-center gap-2.5 rounded-[10px] bg-teal px-3 py-2.5 text-[12px] font-[650] whitespace-nowrap text-white transition-[background,transform] duration-150 hover:-translate-y-px hover:bg-teal-dark aria-pressed:bg-[#e6f2e8] aria-pressed:text-[#21483d]">
+            <svg class="size-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20l4-1 11-11-3-3L5 16l-1 4z"/><path d="M14 7l3 3"/></svg>
+            <span id="board-toggle-label">Abrir pizarra para la clase</span>
+        </button>
         <div id="student-count" class="mt-4 rounded-xl border border-[#41615b] px-[13px] py-3" role="status" aria-live="polite">
             <p class="m-0 flex items-center gap-2 text-[13px] font-[650] leading-[1.4] text-[#e3ede6]">
                 <svg class="size-4 shrink-0 text-[#88b9a4]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
@@ -150,6 +155,56 @@
             @endfor
             </div>
         </section>
+
+        @php
+            $boardTool = 'board-tool inline-flex items-center gap-1.5 rounded-[7px] border-0 bg-transparent px-2.5 py-1.5 text-[12px] font-[650] text-muted aria-pressed:bg-[#e2f1ec] aria-pressed:text-teal disabled:opacity-45';
+            $boardBtn = 'rounded-lg border border-line bg-white px-3 py-1.5 text-[12px] font-[650] disabled:opacity-45';
+        @endphp
+        <section id="pizarra-panel" data-activity-panel="pizarra" role="tabpanel" aria-label="Pizarra de la clase" hidden>
+            <div class="grid gap-2.5 rounded-[14px] border border-line bg-white p-3">
+                <div class="flex flex-wrap items-center gap-2">
+                    <div class="inline-flex gap-1 rounded-[10px] border border-line p-[3px]" role="group" aria-label="Herramienta">
+                        <button type="button" class="{{ $boardTool }}" data-tool="pen"><svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20l4-1 11-11-3-3L5 16l-1 4z"/><path d="M14 7l3 3"/></svg><span class="max-phone:hidden">Lápiz</span></button>
+                        <button type="button" class="{{ $boardTool }}" data-tool="arrow"><svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 19L19 5"/><path d="M10 5h9v9"/></svg><span class="max-phone:hidden">Flecha</span></button>
+                        <button type="button" class="{{ $boardTool }}" data-tool="eraser"><svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 16l9-9 7 7-5 5H7z"/><path d="M12 21h9"/></svg><span class="max-phone:hidden">Borrador</span></button>
+                    </div>
+                    <div id="board-colors" class="inline-flex gap-1.5 px-1" role="group" aria-label="Color">
+                        @foreach(\App\Http\Controllers\BoardController::COLORS as $color)
+                            <button type="button" class="board-color size-6 rounded-full border-2 border-white p-0 shadow-[0_0_0_1px_#dbe4df] aria-pressed:shadow-[0_0_0_2px_#172e37] disabled:opacity-35" data-color="{{ $color }}" style="background: {{ $color }}" aria-label="Color {{ $color }}"></button>
+                        @endforeach
+                    </div>
+                    <span class="flex-1"></span>
+                    <span id="board-chip" class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[12px] font-[650] whitespace-nowrap before:size-[7px] before:rounded-full before:bg-current before:content-[''] data-[can]:bg-[#e2f1ec] data-[can]:text-teal bg-[#fbf0d9] text-[#9a6200]" role="status"></span>
+                    @unless($isOwner)
+                        <button type="button" id="board-hand" class="{{ $boardBtn }} border-teal bg-teal text-white" hidden>Levantar la mano para dibujar</button>
+                    @endunless
+                    <button type="button" id="board-undo" class="{{ $boardBtn }}">Deshacer</button>
+                    <button type="button" id="board-clear" class="{{ $boardBtn }} text-danger data-[armed]:border-danger data-[armed]:bg-danger data-[armed]:text-white" hidden>Borrar todo</button>
+                </div>
+                <div id="board-wrap" class="relative mx-auto aspect-[16/10] w-[min(100%,calc((100dvh-330px)*1.6))] max-w-full overflow-hidden rounded-[10px] border border-line bg-white">
+                    <canvas id="board" class="block size-full cursor-crosshair touch-none data-[eraser]:cursor-cell data-[readonly]:cursor-not-allowed" aria-label="Pizarra compartida de la clase"></canvas>
+                    <div id="board-toast" class="absolute bottom-3 left-1/2 max-w-[calc(100%-24px)] -translate-x-1/2 rounded-[9px] bg-ink px-3.5 py-2 text-[13px] font-medium text-paper shadow-[0_6px_20px_rgba(0,0,0,.18)]" role="status" hidden></div>
+                </div>
+                <div class="flex flex-wrap items-center gap-2 text-[12px] text-muted">
+                    <label for="board-authors" class="m-0 inline-flex items-center gap-2 text-[12px] font-medium"><input type="checkbox" id="board-authors" class="size-[15px] accent-teal" checked> Mostrar quién dibujó cada trazo</label>
+                </div>
+            </div>
+
+            @if($isOwner)
+            <div class="mt-4 grid gap-3 rounded-[14px] border border-line bg-white p-4">
+                <div class="flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                        <h3 class="m-0 text-[15px] font-[650]">Permisos de la pizarra</h3>
+                        <p class="m-0 text-[12px] text-muted">Elige quién puede dibujar y quién puede borrar lo de otros.</p>
+                    </div>
+                    <label for="board-open" class="m-0 inline-flex items-center gap-2.5 rounded-[10px] bg-[#e2f1ec] px-3 py-2 text-[12px] font-[650]">
+                        <input type="checkbox" id="board-open" class="size-[15px] accent-teal">
+                        Pizarra libre: todos pueden dibujar
+                    </label>
+                </div>
+                <ul id="board-students" class="m-0 grid list-none grid-cols-[repeat(auto-fill,minmax(230px,1fr))] gap-2 p-0"></ul>            </div>
+            @endif
+        </section>
     </section>
 </main>
 @endsection
@@ -166,8 +221,18 @@
         'physics' => $physics,
         'stateUrl' => route('classroom.state', $room->code),
         'updateUrl' => route('classroom.update', $room->code),
+        'board' => [
+            'url' => route('board.show', $room->code),
+            'strokesUrl' => route('board.strokes.store', $room->code),
+            'strokeUrl' => route('board.strokes.destroy', [$room->code, '__ID__']),
+            'handUrl' => route('board.hand', $room->code),
+            'permissionsUrl' => route('board.permissions', [$room->code, '__ID__']),
+            'openUrl' => route('board.open', $room->code),
+            'revision' => $room->board_revision,
+        ],
     ]) }};
 </script>
-{{-- ?v= evita que el navegador use una versión antigua de aula.js en caché. --}}
+{{-- ?v= evita que el navegador use una versión antigua de los scripts en caché. --}}
+<script src="{{ asset('js/pizarra.js') }}?v={{ filemtime(public_path('js/pizarra.js')) }}" defer></script>
 <script src="{{ asset('js/aula.js') }}?v={{ filemtime(public_path('js/aula.js')) }}" defer></script>
 @endpush

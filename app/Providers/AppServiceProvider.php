@@ -22,5 +22,9 @@ class AppServiceProvider extends ServiceProvider
             Limit::perMinute(15)->by('join-browser:'.$request->session()->getId()),
             Limit::perMinute(240)->by('join-ip:'.$request->ip()),
         ]);
+        // Dibujar y borrar con el borrador genera varias peticiones seguidas.
+        RateLimiter::for('classroom-board', fn (Request $request) => [
+            Limit::perMinute(300)->by('board-browser:'.$request->session()->getId()),
+        ]);
     }
 }

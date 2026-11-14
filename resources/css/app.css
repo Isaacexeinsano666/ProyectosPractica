@@ -1,5 +1,8 @@
 @import 'tailwindcss';
 
+/* pizarra.js crea elementos con clases de Tailwind; así se incluyen en el CSS compilado. */
+@source '../../public/js';
+
 /* Colores, fuentes y puntos de corte del diseño del aula. */
 @theme {
     --font-sans: Inter, "Segoe UI", Arial, sans-serif;

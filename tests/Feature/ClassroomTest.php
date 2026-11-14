@@ -54,7 +54,7 @@ class ClassroomTest extends TestCase
     public function test_student_can_join_with_lowercase_hyphenated_code(): void
     {
         $room = $this->room();
-        $this->post('/unirse', ['code' => ' abcd-1234 '])->assertRedirect(route('classroom.show', $room->code))
+        $this->post('/unirse', ['code' => ' abcd-1234 ', 'name' => 'Ana'])->assertRedirect(route('classroom.show', $room->code))
             ->assertSessionHas("classroom_members.{$room->id}", true);
         $this->get(route('classroom.show', $room->code))->assertOk()
             ->assertSee('Principio de Arquímedes')->assertSee('Presión hidrostática')->assertDontSee('Sí, finalizar clase');
@@ -62,11 +62,11 @@ class ClassroomTest extends TestCase
 
     public function test_invalid_closed_and_expired_codes_are_rejected(): void
     {
-        $this->post('/unirse', ['code' => 'NOTACODE'])->assertSessionHasErrors('code');
+        $this->post('/unirse', ['code' => 'NOTACODE', 'name' => 'Ana'])->assertSessionHasErrors('code');
         $room = $this->room(['ended_at' => now()]);
-        $this->post('/unirse', ['code' => $room->code])->assertSessionHasErrors('code');
+        $this->post('/unirse', ['code' => $room->code, 'name' => 'Ana'])->assertSessionHasErrors('code');
         $room->update(['ended_at' => null, 'expires_at' => now()->subMinute()]);
-        $this->post('/unirse', ['code' => $room->code])->assertSessionHasErrors('code');
+        $this->post('/unirse', ['code' => $room->code, 'name' => 'Ana'])->assertSessionHasErrors('code');
     }
 
     public function test_room_and_state_require_membership(): void
@@ -116,7 +116,7 @@ class ClassroomTest extends TestCase
             ->assertJsonPath('state.masa1', 2.5)->assertJsonPath('state.masa2', 0.75)
             ->assertJsonPath('active', true)->assertJsonMissingPath('owner_hash');
         $this->withSession(['classroom_owners' => [], 'classroom_members' => []]);
-        $this->post('/unirse', ['code' => $room->code])->assertRedirect();
+        $this->post('/unirse', ['code' => $room->code, 'name' => 'Ana'])->assertRedirect();
         $this->get(route('classroom.show', $room->code))->assertSee('Mercurio')->assertSee('Hielo');
     }
 
@@ -171,7 +171,7 @@ class ClassroomTest extends TestCase
         $this->putJson(route('classroom.update', $room->code), config('physics.initial_state'))->assertGone();
         $this->withSession($this->student($room))->getJson(route('classroom.state', $room->code))
             ->assertOk()->assertJsonPath('active', false);
-        $this->post('/unirse', ['code' => $room->code])->assertSessionHasErrors('code');
+        $this->post('/unirse', ['code' => $room->code, 'name' => 'Ana'])->assertSessionHasErrors('code');
     }
 
     public function test_old_ended_and_expired_rooms_are_pruned(): void
@@ -216,7 +216,7 @@ class ClassroomTest extends TestCase
         $this->getJson(route('classroom.state', $room->code))
             ->assertJsonPath('active', false)->assertJsonPath('expires_in', 0);
         $this->putJson(route('classroom.update', $room->code), config('physics.initial_state'))->assertGone();
-        $this->post('/unirse', ['code' => $room->code])->assertSessionHasErrors('code');
+        $this->post('/unirse', ['code' => $room->code, 'name' => 'Ana'])->assertSessionHasErrors('code');
     }
 
     public function test_each_teacher_change_restarts_the_inactivity_timer(): void
@@ -272,7 +272,7 @@ class ClassroomTest extends TestCase
     public function test_joining_counts_the_student_and_teacher_is_not_counted(): void
     {
         $room = $this->room();
-        $this->post('/unirse', ['code' => $room->code])->assertRedirect();
+        $this->post('/unirse', ['code' => $room->code, 'name' => 'Ana'])->assertRedirect();
         $this->withSession($this->teacher($room))->getJson(route('classroom.state', $room->code))
             ->assertJsonPath('students.online', 1)->assertJsonPath('students.joined', 1);
         $this->get(route('classroom.show', $room->code))->assertSee('1 alumno conectado');

@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\ClassroomMember;
+use App\Http\Controllers\Concerns\ClassroomAccess;
 use App\Models\ClassroomSession;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\JsonResponse;
@@ -16,8 +16,10 @@ use Illuminate\View\View;
 
 class ClassroomController extends Controller
 {
-    /** Cada alumno renueva su "visto por última vez" como mucho una vez cada estos segundos. */
-    private const PRESENCE_WRITE_SECONDS = 15;
+    use ClassroomAccess;
+
+    /** Lo que el profesor puede mostrar a la clase: los dos experimentos o la pizarra. */
+    public const ACTIVITIES = ['arquimedes', 'hidrostatica', 'pizarra'];
 
     public function home(Request $request): View
     {
@@ -57,10 +59,19 @@ class ClassroomController extends Controller
 
     public function join(Request $request): RedirectResponse
     {
-        $request->validate(['code' => ['required', 'string', 'max:30']], [
+        $request->validate([
+            'code' => ['required', 'string', 'max:30'],
+            'name' => ['required', 'string', 'max:40'],
+        ], [
             'code.required' => 'Ingresa el código que te compartió tu profesor.',
             'code.max' => 'Revisa el código de la sesión.',
+            'name.required' => 'Escribe tu nombre para que el profesor sepa quién eres.',
+            'name.max' => 'Usa un nombre de hasta 40 caracteres.',
         ]);
+        $name = trim(preg_replace('/\s+/u', ' ', $request->input('name')));
+        if ($name === '') {
+            throw ValidationException::withMessages(['name' => 'Escribe tu nombre para que el profesor sepa quién eres.']);
+        }
         $code = strtoupper(preg_replace('/[\s-]+/', '', $request->input('code')));
         $room = preg_match('/^[A-Z0-9]{8}$/', $code)
             ? ClassroomSession::where('code', $code)->first() : null;
@@ -70,7 +81,12 @@ class ClassroomController extends Controller
             ]);
         }
         $request->session()->put("classroom_members.{$room->id}", true);
-        $this->trackPresence($request, $room);
+        $member = $this->currentMember($request, $room);
+        if ($member && $member->name !== $name) {
+            $member->update(['name' => $name]);
+            // El nombre aparece en el panel de permisos de la pizarra.
+            $room->increment('board_revision');
+        }
 
         return redirect()->route('classroom.show', $room->code);
     }
@@ -109,7 +125,7 @@ class ClassroomController extends Controller
         $fluids = array_keys(config('physics.fluids'));
         $objects = array_keys(config('physics.objects'));
         $state = $request->validate([
-            'activity' => ['required', Rule::in(['arquimedes', 'hidrostatica'])],
+            'activity' => ['required', Rule::in(self::ACTIVITIES)],
             'arquimedes_fluido1' => ['required', Rule::in($fluids)],
             'arquimedes_fluido2' => ['required', Rule::in($fluids)],
             'objeto1' => ['required', Rule::in($objects)],
@@ -146,50 +162,12 @@ class ClassroomController extends Controller
         return redirect()->route('home')->with('notice', 'La sesión finalizó.');
     }
 
-    private function isOwner(Request $request, ClassroomSession $room): bool
-    {
-        $secret = $request->session()->get("classroom_owners.{$room->id}");
-
-        return is_string($secret) && hash_equals($room->owner_hash, hash('sha256', $secret));
-    }
-
-    private function isMember(Request $request, ClassroomSession $room): bool
-    {
-        return $this->isOwner($request, $room)
-            || $request->session()->get("classroom_members.{$room->id}") === true;
-    }
-
-    /**
-     * Marca al alumno como conectado. Cada navegador recibe una clave aleatoria en su
-     * sesión, y la base de datos solo se escribe cada PRESENCE_WRITE_SECONDS.
-     */
-    private function trackPresence(Request $request, ClassroomSession $room): void
-    {
-        if ($this->isOwner($request, $room) || ! $room->isActive()) {
-            return;
-        }
-        $sessionKey = "classroom_presence.{$room->id}";
-        $presence = $request->session()->get($sessionKey);
-        if (! is_array($presence) || ! is_string($presence['key'] ?? null)) {
-            $presence = ['key' => Str::random(40), 'at' => 0];
-        }
-        if (now()->timestamp - (int) $presence['at'] < self::PRESENCE_WRITE_SECONDS) {
-            return;
-        }
-        ClassroomMember::upsert(
-            [['classroom_session_id' => $room->id, 'member_key' => $presence['key'], 'last_seen_at' => now()]],
-            ['classroom_session_id', 'member_key'],
-            ['last_seen_at'],
-        );
-        $presence['at'] = now()->timestamp;
-        $request->session()->put($sessionKey, $presence);
-    }
-
     private function snapshot(ClassroomSession $room, bool $forOwner = false): JsonResponse
     {
         $data = [
             'state' => $this->normalizedState($room->state),
             'revision' => $room->revision,
+            'board_revision' => $room->board_revision,
             'active' => $room->isActive(),
             'expires_in' => $room->secondsUntilExpiry(),
         ];

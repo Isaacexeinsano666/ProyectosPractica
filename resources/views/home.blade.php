@@ -14,6 +14,11 @@
                 <button type="submit" class="inline-flex min-h-[46px] items-center justify-center gap-5 rounded-[10px] bg-teal px-[21px] py-3.5 text-[13px] font-[650] whitespace-nowrap text-white transition-[background,transform] duration-150 hover:-translate-y-px hover:bg-teal-dark max-phone:w-full">Unirme <span aria-hidden="true">→</span></button>
             </div>
             @error('code')<p class="mt-3 mb-0 text-[12px] text-danger" id="code-error" role="alert">{{ $message }}</p>@enderror
+            <label for="name" class="mt-4 mb-2 block text-[12px] font-[650]">Tu nombre</label>
+            <input id="name" name="name" value="{{ old('name') }}" placeholder="Tu nombre" maxlength="40" autocomplete="given-name" required
+                class="h-[46px] bg-[#fcfdfa] text-[15px] aria-invalid:border-danger"
+                @error('name') aria-describedby="name-error" aria-invalid="true" @enderror>
+            @error('name')<p class="mt-3 mb-0 text-[12px] text-danger" id="name-error" role="alert">{{ $message }}</p>@enderror
         </form>
         <div class="border-t border-line bg-[#f8faf7] px-8 py-[19px] max-phone:px-[22px] max-phone:py-[18px]">
             <details>

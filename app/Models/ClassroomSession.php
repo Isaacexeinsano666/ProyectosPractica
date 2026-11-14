@@ -25,6 +25,11 @@ class ClassroomSession extends Model
         return $this->hasMany(ClassroomMember::class);
     }
 
+    public function strokes(): HasMany
+    {
+        return $this->hasMany(ClassroomStroke::class);
+    }
+
     /** @return array{online: int, joined: int} */
     public function studentCounts(): array
     {
@@ -54,6 +59,7 @@ class ClassroomSession extends Model
             'state' => 'array',
             'expires_at' => 'datetime',
             'ended_at' => 'datetime',
+            'board_open' => 'boolean',
         ];
     }
 
