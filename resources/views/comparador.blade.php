@@ -160,13 +160,11 @@
             <div class="mb-6 rounded-[13px] border border-line bg-[#eff3ec] px-[25px] py-5 max-laptop:p-[18px]">
                 <div class="flex flex-wrap items-center justify-center gap-x-8 gap-y-2">
                     <strong class="{{ $formulaMain }}">P = F₁/A₁ = F₂/A₂</strong>
-                    <strong class="{{ $formulaMain }}">A₁ · d₁ = A₂ · d₂</strong>
                 </div>
                 <dl class="mt-3.5 grid grid-cols-2 gap-x-6 gap-y-2 border-t border-[#cdd9cc] pt-3.5 text-[11px] text-muted max-phone:grid-cols-1">
                     <div class="flex gap-2"><dt class="font-serif font-bold text-ink">P</dt><dd>Presión transmitida por el fluido (Pa)</dd></div>
                     <div class="flex gap-2"><dt class="font-serif font-bold text-ink">F₁ / F₂</dt><dd>Fuerza aplicada y fuerza de salida (N)</dd></div>
                     <div class="flex gap-2"><dt class="font-serif font-bold text-ink">A₁ / A₂</dt><dd>Área de los pistones pequeño y grande (m²)</dd></div>
-                    <div class="flex gap-2"><dt class="font-serif font-bold text-ink">d₁ / d₂</dt><dd>Desplazamiento de cada pistón (m)</dd></div>
                 </dl>
             </div>
             <figure class="mb-6 rounded-[13px] border border-line bg-white px-4 py-3">
@@ -203,9 +201,6 @@
                     <input type="number" id="pascalArea2" class="experiment-control bg-[#fafcf8] p-3 text-[12px] tabular-nums aria-invalid:border-danger disabled:text-[#455c60] disabled:opacity-100" min="0.1" max="1000" step="0.1" value="{{ $room->state['pascal_area2'] ?? '' }}" @disabled(!$isOwner || !$active)>
                     <label class="{{ $label }} mt-4" for="pascalForce1">Fuerza aplicada al pistón pequeño (N)</label>
                     <input type="number" id="pascalForce1" class="experiment-control bg-[#fafcf8] p-3 text-[12px] tabular-nums aria-invalid:border-danger disabled:text-[#455c60] disabled:opacity-100" min="0.1" max="1000" step="0.1" value="{{ $room->state['pascal_force1'] ?? '' }}" @disabled(!$isOwner || !$active)>
-                    <label class="{{ $label }} mt-4" for="pascalDistance1">Descenso del pistón pequeño (cm)</label>
-                    <input type="number" id="pascalDistance1" class="experiment-control bg-[#fafcf8] p-3 text-[12px] tabular-nums aria-invalid:border-danger disabled:text-[#455c60] disabled:opacity-100" min="0.1" max="1000" step="0.1" value="{{ $room->state['pascal_distance1'] ?? '' }}" @disabled(!$isOwner || !$active)>
-                    <p class="mt-4 mb-0 text-[11px] text-muted">Completa los cuatro datos para activar la animación.</p>
                 </article>
             </div>
         </section>
