@@ -1,0 +1,28 @@
+name: hidroestatica
+services:
+  php:
+    build: .
+    image: hidroestatica-app:local
+    container_name: hidroestatica-php
+    restart: unless-stopped
+    env_file: .env
+    ports:
+      - "127.0.0.1:9084:9000"
+    volumes:
+      - hidroestatica_storage:/var/www/html/storage/app
+      - hidroestatica_logs:/var/www/html/storage/logs
+    networks:
+      - default
+      - hidroestatica-db
+    mem_limit: 512m
+    cpus: 1.0
+volumes:
+  hidroestatica_storage:
+  hidroestatica_logs:
+networks:
+  default:
+    ipam:
+      config:
+        - subnet: 192.168.245.0/24
+  hidroestatica-db:
+    external: true
