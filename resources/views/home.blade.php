@@ -1,10 +1,13 @@
 @extends('layouts.app')
 
+@section('title', 'Principios de hidrostática · Aula')
+
 @section('content')
 <main class="mx-auto max-w-[960px] px-6 pt-[58px] pb-2 min-[1500px]:pt-[72px] max-tablet:pt-10 max-phone:px-[18px] max-phone:pt-[35px] max-phone:pb-[5px]">
     <section class="mx-auto max-w-[610px] overflow-hidden rounded-[20px] border border-line bg-white shadow-[0_12px_40px_#15392c07]" aria-label="Acceso a la clase">
         @if(session('notice'))<p class="mx-8 mb-5 rounded-[10px] border border-[#d4e4d0] bg-[#eef5ed] px-[17px] py-[13px] text-[13px] text-[#365e38]" role="status">{{ session('notice') }}</p>@endif
-        <form action="{{ route('classroom.join') }}" method="POST" class="px-8 pt-7 pb-7 max-phone:px-[22px] max-phone:pb-6">
+        <h1 class="px-8 pt-7 pb-2 text-center text-[52px] leading-tight font-semibold tracking-[-1px] max-phone:px-[22px] max-phone:text-[34px]">PRINCIPIOS DE HIDROSTÁTICA</h1>
+        <form action="{{ route('classroom.join') }}" method="POST" class="px-8 pt-3 pb-7 max-phone:px-[22px] max-phone:pb-6">
             @csrf
             <label for="code" class="mb-2 block text-[12px] font-[650]">Código de la sesión</label>
             <div class="flex gap-2.5 max-phone:flex-col">

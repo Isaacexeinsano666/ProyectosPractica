@@ -30,5 +30,10 @@ return [
         'hidrostatica_fluido2' => 'aceite',
         'altura1' => 1,
         'altura2' => 1,
+        'pascal_area1' => null,
+        'pascal_area2' => null,
+        'pascal_force1' => null,
+        'pascal_distance1' => null,
+        'pascal_configured' => false,
     ],
 ];

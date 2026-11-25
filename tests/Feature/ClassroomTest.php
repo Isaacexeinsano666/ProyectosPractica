@@ -33,7 +33,8 @@ class ClassroomTest extends TestCase
 
     public function test_home_shows_the_join_menu_and_creation_form(): void
     {
-        $this->get('/')->assertOk()->assertSee('Código de la sesión')->assertSee('Crear sesión')
+        $this->get('/')->assertOk()->assertSee('PRINCIPIOS DE HIDROSTÁTICA')
+            ->assertSee('Código de la sesión')->assertSee('Crear sesión')
             ->assertDontSee('id="selectLiquido1"', false);
     }
 
@@ -57,7 +58,10 @@ class ClassroomTest extends TestCase
         $this->post('/unirse', ['code' => ' abcd-1234 ', 'name' => 'Ana'])->assertRedirect(route('classroom.show', $room->code))
             ->assertSessionHas("classroom_members.{$room->id}", true);
         $this->get(route('classroom.show', $room->code))->assertOk()
-            ->assertSee('Principio de Arquímedes')->assertSee('Presión hidrostática')->assertDontSee('Sí, finalizar clase');
+            ->assertSee('Principio de Arquímedes')->assertSee('Presión hidrostática')->assertSee('Principio de Pascal')
+            ->assertSee('id="pascalPiston1"', false)->assertSee('id="pascalArea1"', false)
+            ->assertSee('value=""', false)->assertDontSee('Resultados calculados')
+            ->assertDontSee('Sí, finalizar clase');
     }
 
     public function test_invalid_closed_and_expired_codes_are_rejected(): void
@@ -96,7 +100,7 @@ class ClassroomTest extends TestCase
     {
         $room = $this->room();
         $state = [
-            'activity' => 'hidrostatica',
+            'activity' => 'pascal',
             'arquimedes_fluido1' => 'mercurio',
             'arquimedes_fluido2' => 'alcohol',
             'objeto1' => 'hielo',
@@ -107,13 +111,20 @@ class ClassroomTest extends TestCase
             'hidrostatica_fluido2' => 'aceite',
             'altura1' => 1.75,
             'altura2' => 0.5,
+            'pascal_area1' => 2.5,
+            'pascal_area2' => 25,
+            'pascal_force1' => 12,
+            'pascal_distance1' => 45,
         ];
         $this->withSession($this->teacher($room))
             ->putJson(route('classroom.update', $room->code), $state)->assertOk()
+            ->assertJsonPath('state.activity', 'pascal')
             ->assertJsonPath('state.arquimedes_fluido1', 'mercurio')->assertJsonPath('revision', 1);
         $this->withSession($this->student($room))->getJson(route('classroom.state', $room->code))
             ->assertOk()->assertJsonPath('state.objeto1', 'hielo')->assertJsonPath('state.objeto2', 'aluminio')
             ->assertJsonPath('state.masa1', 2.5)->assertJsonPath('state.masa2', 0.75)
+            ->assertJsonPath('state.pascal_area1', 2.5)->assertJsonPath('state.pascal_area2', 25)
+            ->assertJsonPath('state.pascal_force1', 12)->assertJsonPath('state.pascal_distance1', 45)
             ->assertJsonPath('active', true)->assertJsonMissingPath('owner_hash');
         $this->withSession(['classroom_owners' => [], 'classroom_members' => []]);
         $this->post('/unirse', ['code' => $room->code, 'name' => 'Ana'])->assertRedirect();
@@ -135,8 +146,45 @@ class ClassroomTest extends TestCase
             'hidrostatica_fluido2' => 'aceite',
             'altura1' => 1,
             'altura2' => 1,
+            'pascal_area1' => 2,
+            'pascal_area2' => 20,
+            'pascal_force1' => 10,
+            'pascal_distance1' => 50,
         ])->assertUnprocessable()->assertJsonValidationErrors(['activity', 'arquimedes_fluido1', 'objeto1']);
         $this->assertSame(0, $room->fresh()->revision);
+    }
+
+    public function test_pascal_inputs_must_be_within_the_supported_range(): void
+    {
+        $room = $this->room();
+        $state = array_merge(config('physics.initial_state'), ['pascal_area1' => 0]);
+        $this->withSession($this->teacher($room))->putJson(route('classroom.update', $room->code), $state)
+            ->assertUnprocessable()->assertJsonValidationErrors('pascal_area1');
+        $this->assertSame(0, $room->fresh()->revision);
+    }
+
+    public function test_pascal_inputs_can_remain_empty_until_the_exercise_is_filled(): void
+    {
+        $room = $this->room();
+        $this->withSession($this->teacher($room))
+            ->putJson(route('classroom.update', $room->code), config('physics.initial_state'))
+            ->assertOk()->assertJsonPath('state.pascal_area1', null)
+            ->assertJsonPath('state.pascal_area2', null)->assertJsonPath('state.pascal_configured', false);
+    }
+
+    public function test_old_pascal_defaults_are_hidden_from_existing_sessions(): void
+    {
+        $oldState = config('physics.initial_state');
+        $oldState['pascal_area1'] = 2;
+        $oldState['pascal_area2'] = 20;
+        $oldState['pascal_force1'] = 10;
+        $oldState['pascal_distance1'] = 50;
+        unset($oldState['pascal_configured']);
+        $room = $this->room(['state' => $oldState]);
+
+        $this->withSession($this->student($room))->getJson(route('classroom.state', $room->code))
+            ->assertOk()->assertJsonPath('state.pascal_area1', null)
+            ->assertJsonPath('state.pascal_area2', null)->assertJsonPath('state.pascal_configured', false);
     }
 
     public function test_mass_must_be_between_limits(): void

@@ -100,12 +100,11 @@
         window.classroomBoard?.setActive(onBoard);
     }
 
-    // Las flechas nacen en el centro de la pelota (radio 21 px), así que el largo
-    // visible empieza en su borde. La mayor de las dos fuerzas sobresale ARROW_MAX px
-    // y la otra en proporción, para comparar empuje y peso a simple vista.
+    // Las flechas nacen en el centro de la pelota; su longitud se escala contra el
+    // peso máximo del rango de masa para que también cambie al variar la masa.
     const BALL_RADIUS = 21;
     const ARROW_MAX = 32;
-    const ARROW_MIN = 4;
+    const MAX_MASS = 100;
 
     function renderArchimedes() {
         const g = config.physics.gravity;
@@ -141,8 +140,8 @@
                 ? 'calc(72% - ' + (submergedPart * 42) + 'px)'
                 : neutral ? 'calc(36% - 21px)' : '0px';
 
-            const strongest = Math.max(buoyantForce, weight);
-            const arrowLength = force => BALL_RADIUS + Math.max(ARROW_MIN, ARROW_MAX * force / strongest) + 'px';
+            const maxForce = MAX_MASS * g;
+            const arrowLength = force => BALL_RADIUS + ARROW_MAX * Math.min(force / maxForce, 1) + 'px';
             document.getElementById('flechaEmpuje' + i).style.height = arrowLength(buoyantForce);
             document.getElementById('flechaPeso' + i).style.height = arrowLength(weight);
 
@@ -189,10 +188,75 @@
         }
     }
 
+    function renderPascal() {
+        const values = [
+            ['pascalArea1', 'pascal_area1'],
+            ['pascalArea2', 'pascal_area2'],
+            ['pascalForce1', 'pascal_force1'],
+            ['pascalDistance1', 'pascal_distance1'],
+        ];
+        let complete = true;
+        for (const [id, key] of values) {
+            const input = document.getElementById(id);
+            const value = state[key];
+            if (document.activeElement !== input) {
+                input.value = value ?? '';
+                input.removeAttribute('aria-invalid');
+            }
+            if (value === null || value === undefined || value === '' || !Number.isFinite(Number(value))) {
+                complete = false;
+            }
+        }
+        if (!complete) {
+            document.getElementById('pascalPiston1').style.transform = 'translateY(0px)';
+            document.getElementById('pascalPiston2').style.transform = 'translateY(0px)';
+            document.getElementById('pascalInputForce').style.transform = 'translateY(0px)';
+            document.getElementById('pascalOutputForce').style.transform = 'translateY(0px)';
+            document.getElementById('pascalFluid1').setAttribute('y', '102');
+            document.getElementById('pascalFluid1').setAttribute('height', '68');
+            document.getElementById('pascalFluid2').setAttribute('y', '74');
+            document.getElementById('pascalFluid2').setAttribute('height', '96');
+            return;
+        }
+
+        const area1 = Number(state.pascal_area1);
+        const area2 = Number(state.pascal_area2);
+        const force1 = Number(state.pascal_force1);
+        const distance1 = Number(state.pascal_distance1);
+        const area1M2 = area1 / 10000;
+        const area2M2 = area2 / 10000;
+        const ratio = area2 / area1;
+        const distance2 = distance1 / ratio;
+        const piston1Offset = Math.min(distance1 * 0.8, 42);
+        const piston2Offset = Math.min(distance2 * 0.8, 23);
+        document.getElementById('pascalPiston1').style.transform = 'translateY(' + piston1Offset + 'px)';
+        document.getElementById('pascalPiston2').style.transform = 'translateY(-' + piston2Offset + 'px)';
+        document.getElementById('pascalInputForce').style.transform = 'translateY(' + piston1Offset + 'px)';
+        document.getElementById('pascalOutputForce').style.transform = 'translateY(-' + piston2Offset + 'px)';
+        const fluid1Y = 102 + piston1Offset;
+        const fluid2Y = 74 - piston2Offset;
+        document.getElementById('pascalFluid1').setAttribute('y', String(fluid1Y));
+        document.getElementById('pascalFluid1').setAttribute('height', String(170 - fluid1Y));
+        document.getElementById('pascalFluid2').setAttribute('y', String(fluid2Y));
+        document.getElementById('pascalFluid2').setAttribute('height', String(170 - fluid2Y));
+    }
+
+    function pascalValue(id, key) {
+        const input = document.getElementById(id);
+        if (input.value === '') {
+            input.removeAttribute('aria-invalid');
+            return null;
+        }
+        const valid = input.checkValidity();
+        input.setAttribute('aria-invalid', String(!valid));
+        return valid ? input.valueAsNumber : null;
+    }
+
     function render() {
         renderTabs();
         renderArchimedes();
         renderHydrostatic();
+        renderPascal();
     }
 
     async function request(url, options = {}) {
@@ -284,6 +348,10 @@
             hidrostatica_fluido2: document.getElementById('hidrostaticaLiquido2').value,
             altura1: Number(document.getElementById('alturaLiquido1').value),
             altura2: Number(document.getElementById('alturaLiquido2').value),
+            pascal_area1: pascalValue('pascalArea1', 'pascal_area1'),
+            pascal_area2: pascalValue('pascalArea2', 'pascal_area2'),
+            pascal_force1: pascalValue('pascalForce1', 'pascal_force1'),
+            pascal_distance1: pascalValue('pascalDistance1', 'pascal_distance1'),
         };
         render();
         queueChanges();

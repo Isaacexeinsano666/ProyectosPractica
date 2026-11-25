@@ -19,7 +19,7 @@ class ClassroomController extends Controller
     use ClassroomAccess;
 
     /** Lo que el profesor puede mostrar a la clase: los dos experimentos o la pizarra. */
-    public const ACTIVITIES = ['arquimedes', 'hidrostatica', 'pizarra'];
+    public const ACTIVITIES = ['arquimedes', 'hidrostatica', 'pascal', 'pizarra'];
 
     public function home(Request $request): View
     {
@@ -136,10 +136,22 @@ class ClassroomController extends Controller
             'hidrostatica_fluido2' => ['required', Rule::in($fluids)],
             'altura1' => ['required', 'numeric', 'between:0.1,2'],
             'altura2' => ['required', 'numeric', 'between:0.1,2'],
+            'pascal_area1' => ['present', 'nullable', 'numeric', 'between:0.1,1000'],
+            'pascal_area2' => ['present', 'nullable', 'numeric', 'between:0.1,1000'],
+            'pascal_force1' => ['present', 'nullable', 'numeric', 'between:0.1,1000'],
+            'pascal_distance1' => ['present', 'nullable', 'numeric', 'between:0.1,1000'],
         ]);
-        foreach (['altura1', 'altura2', 'masa1', 'masa2'] as $field) {
-            $state[$field] = round((float) $state[$field], 2);
+        foreach (['altura1', 'altura2', 'masa1', 'masa2', 'pascal_area1', 'pascal_area2', 'pascal_force1', 'pascal_distance1'] as $field) {
+            if ($state[$field] !== null) {
+                $state[$field] = round((float) $state[$field], 2);
+            }
         }
+        $state['pascal_configured'] = count(array_filter([
+            $state['pascal_area1'],
+            $state['pascal_area2'],
+            $state['pascal_force1'],
+            $state['pascal_distance1'],
+        ], fn ($value) => $value !== null)) > 0;
         // The conditional write also protects against an end request racing this update.
         // Each change by the teacher resets the inactivity timer.
         $written = ClassroomSession::whereKey($room->id)->whereNull('ended_at')
@@ -181,6 +193,16 @@ class ClassroomController extends Controller
 
     private function normalizedState(mixed $state): array
     {
-        return array_merge(config('physics.initial_state'), is_array($state) ? $state : []);
+        $stored = is_array($state) ? $state : [];
+        $normalized = array_merge(config('physics.initial_state'), $stored);
+        if (! array_key_exists('pascal_configured', $stored)) {
+            $normalized['pascal_area1'] = null;
+            $normalized['pascal_area2'] = null;
+            $normalized['pascal_force1'] = null;
+            $normalized['pascal_distance1'] = null;
+            $normalized['pascal_configured'] = false;
+        }
+
+        return $normalized;
     }
 }

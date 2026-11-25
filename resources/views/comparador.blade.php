@@ -42,7 +42,6 @@
             @if($isOwner)<button type="button" id="copy-code" class="inline-flex min-h-[38px] w-full items-center justify-center gap-3 rounded-[10px] bg-[#e6f2e8] px-3 py-[9px] text-[11px] font-[650] whitespace-nowrap text-[#21483d] transition-[background,transform] duration-150 hover:-translate-y-px">Copiar código <span aria-hidden="true">⧉</span></button>@endif
         </div>
         @if($isOwner && $active)
-        {{-- Abre la pizarra para toda la clase: los alumnos pasan a verla automáticamente. --}}
         <button type="button" id="board-toggle" aria-pressed="false" class="mt-4 inline-flex min-h-[42px] w-full items-center justify-center gap-2.5 rounded-[10px] bg-teal px-3 py-2.5 text-[12px] font-[650] whitespace-nowrap text-white transition-[background,transform] duration-150 hover:-translate-y-px hover:bg-teal-dark aria-pressed:bg-[#e6f2e8] aria-pressed:text-[#21483d]">
             <svg class="size-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20l4-1 11-11-3-3L5 16l-1 4z"/><path d="M14 7l3 3"/></svg>
             <span id="board-toggle-label">Abrir pizarra para la clase</span>
@@ -72,6 +71,7 @@
         <div class="mt-3 mb-[22px] flex gap-2.5 border-b border-line max-phone:gap-4 max-phone:overflow-x-auto" role="tablist" aria-label="Actividades de fluidos">
             <button class="{{ $tab }}" type="button" data-activity="arquimedes" role="tab" aria-controls="arquimedes-panel" @disabled(!$isOwner || !$active)>Principio de Arquímedes</button>
             <button class="{{ $tab }}" type="button" data-activity="hidrostatica" role="tab" aria-controls="hidrostatica-panel" @disabled(!$isOwner || !$active)>Presión hidrostática</button>
+            <button class="{{ $tab }}" type="button" data-activity="pascal" role="tab" aria-controls="pascal-panel" @disabled(!$isOwner || !$active)>Principio de Pascal</button>
         </div>
 
         <section id="arquimedes-panel" data-activity-panel="arquimedes" role="tabpanel">
@@ -80,7 +80,7 @@
                 <strong class="{{ $formulaMain }}">E = ρ · g · V</strong>
                 <dl class="mx-auto mt-3.5 grid max-w-[560px] grid-cols-[auto_minmax(0,1fr)] items-baseline gap-x-3 gap-y-1.5 border-t border-[#cdd9cc] pt-3.5 text-left text-[12px] text-muted">
                     <dt class="font-serif text-[15px] font-bold text-ink">E</dt><dd>Empuje: fuerza hacia arriba que el líquido ejerce sobre el sólido (N)</dd>
-                    <dt class="font-serif text-[15px] font-bold text-ink">ρ</dt><dd><span class="text-ink">(rho)</span> Densidad del líquido (kg/m³)</dd>
+                    <dt class="font-serif text-[15px] font-bold text-ink">ρ</dt><dd> Densidad del líquido (kg/m³)</dd>
                     <dt class="font-serif text-[15px] font-bold text-ink">g</dt><dd>Aceleración de gravedad ({{ str_replace('.', ',', $physics['gravity']) }} m/s²)</dd>
                     <dt class="font-serif text-[15px] font-bold text-ink">V</dt><dd>Volumen del líquido desplazado o volumen del sólido sumergido (m³)</dd>
                 </dl>
@@ -110,7 +110,6 @@
                         <div class="{{ $cup }}">
                             <div class="{{ $cupClip }}"><div id="arquimedesFill{{ $i }}" class="{{ $fill }}"><div class="{{ $surface }}"></div></div><div class="{{ $lines }}"></div></div>
                             <div id="ball{{ $i }}" class="absolute bottom-0 left-1/2 z-[2] size-[42px] -translate-x-1/2 rounded-full border-[3px] border-[#79503a] bg-[#9b6849] transition-[bottom,background-color] duration-300 ease-[ease]">
-                                {{-- Flechas desde el centro del sólido: empuje hacia arriba, peso hacia abajo. --}}
                                 <span id="flechaEmpuje{{ $i }}" class="{{ $arrow }} {{ $empujeColor }} bottom-1/2"><span class="{{ $arrowHead }} -top-2 [clip-path:polygon(50%_0,100%_100%,0_100%)]"></span></span>
                                 <span id="flechaPeso{{ $i }}" class="{{ $arrow }} {{ $pesoColor }} top-1/2"><span class="{{ $arrowHead }} -bottom-2 [clip-path:polygon(0_0,100%_0,50%_100%)]"></span></span>
                             </div>
@@ -153,6 +152,61 @@
                     <div class="flex flex-col items-start gap-1 tabular-nums"><strong id="presion{{ $i }}" class="{{ $result }} max-laptop:text-[24px]">— Pa</strong><span id="kilopascales{{ $i }}" class="text-[12px] text-muted">— kPa</span></div>
                 </article>
             @endfor
+            </div>
+        </section>
+
+        <section id="pascal-panel" data-activity-panel="pascal" role="tabpanel" hidden>
+            <header class="{{ $heading }}"><div><h2 class="{{ $title }}">Principio de Pascal</h2></div></header>
+            <div class="mb-6 rounded-[13px] border border-line bg-[#eff3ec] px-[25px] py-5 max-laptop:p-[18px]">
+                <div class="flex flex-wrap items-center justify-center gap-x-8 gap-y-2">
+                    <strong class="{{ $formulaMain }}">P = F₁/A₁ = F₂/A₂</strong>
+                    <strong class="{{ $formulaMain }}">A₁ · d₁ = A₂ · d₂</strong>
+                </div>
+                <dl class="mt-3.5 grid grid-cols-2 gap-x-6 gap-y-2 border-t border-[#cdd9cc] pt-3.5 text-[11px] text-muted max-phone:grid-cols-1">
+                    <div class="flex gap-2"><dt class="font-serif font-bold text-ink">P</dt><dd>Presión transmitida por el fluido (Pa)</dd></div>
+                    <div class="flex gap-2"><dt class="font-serif font-bold text-ink">F₁ / F₂</dt><dd>Fuerza aplicada y fuerza de salida (N)</dd></div>
+                    <div class="flex gap-2"><dt class="font-serif font-bold text-ink">A₁ / A₂</dt><dd>Área de los pistones pequeño y grande (m²)</dd></div>
+                    <div class="flex gap-2"><dt class="font-serif font-bold text-ink">d₁ / d₂</dt><dd>Desplazamiento de cada pistón (m)</dd></div>
+                </dl>
+            </div>
+            <figure class="mb-6 rounded-[13px] border border-line bg-white px-4 py-3">
+                <svg class="mx-auto block w-full max-w-[640px]" viewBox="0 0 640 235" role="img" aria-label="Prensa hidráulica animada: el pistón pequeño desciende y el grande asciende">
+                    <path d="M185 170v35h285v-35" fill="none" stroke="#68827a" stroke-width="16" stroke-linejoin="round"/>
+                    <path d="M185 170v35h285v-35" fill="none" stroke="#70b8b0" stroke-width="10" stroke-linejoin="round"/>
+                    <rect id="pascalFluid1" class="transition-[y,height] duration-500 ease-[ease]" x="143" y="102" width="84" height="68" fill="#70b8b0" opacity=".8"/>
+                    <rect id="pascalFluid2" class="transition-[y,height] duration-500 ease-[ease]" x="413" y="74" width="134" height="96" fill="#70b8b0" opacity=".8"/>
+                    <path d="M140 65v105h90V65M410 35v135h140V35" fill="none" stroke="#68827a" stroke-width="5" stroke-linejoin="round"/>
+                    <g id="pascalPiston1" class="transition-transform duration-500 ease-[ease]">
+                        <rect x="137" y="88" width="96" height="14" rx="3" fill="#d9e3df" stroke="#526963" stroke-width="2"/>
+                    </g>
+                    <g id="pascalPiston2" class="transition-transform duration-500 ease-[ease]">
+                        <rect x="405" y="58" width="150" height="16" rx="3" fill="#d9e3df" stroke="#526963" stroke-width="2"/>
+                    </g>
+                    <g id="pascalInputForce" class="transition-transform duration-500 ease-[ease]">
+                        <path d="M185 55v23m-7-8 7 8 7-8" fill="none" stroke="#d93025" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+                        <text x="202" y="70" fill="#455c60" font-size="13">F₁</text>
+                    </g>
+                    <g id="pascalOutputForce" class="transition-transform duration-500 ease-[ease]">
+                        <path d="M480 48V18m-7 8 7-8 7 8" fill="none" stroke="#17846b" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+                        <text x="496" y="33" fill="#455c60" font-size="13">F₂</text>
+                    </g>
+                    <text x="185" y="228" text-anchor="middle" fill="#455c60" font-size="13">A₁</text>
+                    <text x="480" y="228" text-anchor="middle" fill="#455c60" font-size="13">A₂</text>
+                </svg>
+            </figure>
+            <div class="grid grid-cols-1 gap-5">
+                <article class="{{ $card }} mx-auto w-full max-w-[560px]">
+                    <header class="mb-6"><h3 class="m-0 text-[15px] font-[650]">Datos de la prensa</h3></header>
+                    <label class="{{ $label }}" for="pascalArea1">Área del pistón pequeño (cm²)</label>
+                    <input type="number" id="pascalArea1" class="experiment-control bg-[#fafcf8] p-3 text-[12px] tabular-nums aria-invalid:border-danger disabled:text-[#455c60] disabled:opacity-100" min="0.1" max="1000" step="0.1" value="{{ $room->state['pascal_area1'] ?? '' }}" @disabled(!$isOwner || !$active)>
+                    <label class="{{ $label }} mt-4" for="pascalArea2">Área del pistón grande (cm²)</label>
+                    <input type="number" id="pascalArea2" class="experiment-control bg-[#fafcf8] p-3 text-[12px] tabular-nums aria-invalid:border-danger disabled:text-[#455c60] disabled:opacity-100" min="0.1" max="1000" step="0.1" value="{{ $room->state['pascal_area2'] ?? '' }}" @disabled(!$isOwner || !$active)>
+                    <label class="{{ $label }} mt-4" for="pascalForce1">Fuerza aplicada al pistón pequeño (N)</label>
+                    <input type="number" id="pascalForce1" class="experiment-control bg-[#fafcf8] p-3 text-[12px] tabular-nums aria-invalid:border-danger disabled:text-[#455c60] disabled:opacity-100" min="0.1" max="1000" step="0.1" value="{{ $room->state['pascal_force1'] ?? '' }}" @disabled(!$isOwner || !$active)>
+                    <label class="{{ $label }} mt-4" for="pascalDistance1">Descenso del pistón pequeño (cm)</label>
+                    <input type="number" id="pascalDistance1" class="experiment-control bg-[#fafcf8] p-3 text-[12px] tabular-nums aria-invalid:border-danger disabled:text-[#455c60] disabled:opacity-100" min="0.1" max="1000" step="0.1" value="{{ $room->state['pascal_distance1'] ?? '' }}" @disabled(!$isOwner || !$active)>
+                    <p class="mt-4 mb-0 text-[11px] text-muted">Completa los cuatro datos para activar la animación.</p>
+                </article>
             </div>
         </section>
 
