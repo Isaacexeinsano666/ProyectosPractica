@@ -164,7 +164,7 @@
                 <dl class="mt-3.5 grid grid-cols-2 gap-x-6 gap-y-2 border-t border-[#cdd9cc] pt-3.5 text-[11px] text-muted max-phone:grid-cols-1">
                     <div class="flex gap-2"><dt class="font-serif font-bold text-ink">P</dt><dd>Presión transmitida por el fluido (Pa)</dd></div>
                     <div class="flex gap-2"><dt class="font-serif font-bold text-ink">F₁ / F₂</dt><dd>Fuerza aplicada y fuerza de salida (N)</dd></div>
-                    <div class="flex gap-2"><dt class="font-serif font-bold text-ink">A₁ / A₂</dt><dd>Área de los pistones pequeño y grande. Se ingresan en cm²; para calcular P en Pa se pasan a m² (1 cm² = 0,0001 m²)</dd></div>
+                    <div class="flex gap-2"><dt class="font-serif font-bold whitespace-nowrap text-ink">A₁ / A₂</dt><dd>Área de los pistones pequeño y grande, en cm² (1 cm² = 0,0001 m²)</dd></div>
                 </dl>
             </div>
             <figure class="mb-6 rounded-[13px] border border-line bg-white px-4 py-3">
@@ -239,7 +239,8 @@
                     <span class="flex-1"></span>
                     <span id="board-chip" class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[12px] font-[650] whitespace-nowrap before:size-[7px] before:rounded-full before:bg-current before:content-[''] data-[can]:bg-[#e2f1ec] data-[can]:text-teal bg-[#fbf0d9] text-[#9a6200]" role="status"></span>
                     @unless($isOwner)
-                        <button type="button" id="board-hand" class="{{ $boardBtn }} border-teal bg-teal text-white" hidden>Levantar la mano para dibujar</button>
+                        {{-- Sin $boardBtn: su bg-white le ganaba a bg-teal y el texto blanco no se veía. --}}
+                        <button type="button" id="board-hand" class="rounded-lg border border-teal bg-teal px-3 py-1.5 text-[12px] font-[650] text-white disabled:opacity-45" hidden>Levantar la mano para dibujar</button>
                     @endunless
                     <button type="button" id="board-undo" class="{{ $boardBtn }}">Deshacer</button>
                     <button type="button" id="board-clear" class="{{ $boardBtn }} text-danger data-[armed]:border-danger data-[armed]:bg-danger data-[armed]:text-white" hidden>Borrar todo</button>

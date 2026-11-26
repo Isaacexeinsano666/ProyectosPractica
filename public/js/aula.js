@@ -259,7 +259,7 @@
     const PASCAL_MAX_DROP = 42;   // lo que puede bajar el pistón pequeño sin tocar el fondo
     const PASCAL_MAX_RISE = 23;   // lo que puede subir el pistón grande sin salir del cilindro
     const PASCAL_MAX_ARROW = 40;
-    const PASCAL_MIN_ARROW = 8;
+    const PASCAL_MIN_ARROW = 14;
     const PASCAL_DEFAULT = { width1: 90, arrow1: 23, arrow2: 30 };
 
     function drawPascal({ width1, offset1, offset2, arrow1, arrow2 }) {
@@ -276,7 +276,8 @@
 
         // F₁ empuja hacia abajo y termina sobre el pistón pequeño; F₂ sale hacia arriba del grande.
         set('pascalInputArrow', { d: `M${PASCAL_CENTER1} ${78 - arrow1}v${arrow1}m-7-8 7 8 7-8` });
-        set('pascalInputLabel', { y: 78 - arrow1 / 2 + 4 });
+        // Con el cilindro pequeño angosto, la etiqueta F₁ va por fuera de su pared.
+        set('pascalInputLabel', { x: width1 < 60 ? PASCAL_CENTER1 + width1 / 2 + 8 : 202, y: 78 - arrow1 / 2 + 4 });
         set('pascalOutputArrow', { d: `M${PASCAL_CENTER2} 48V${48 - arrow2}m-7 8 7-8 7 8` });
         set('pascalOutputLabel', { y: 48 - arrow2 / 2 + 4 });
 
