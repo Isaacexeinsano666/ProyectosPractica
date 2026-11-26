@@ -199,7 +199,9 @@
         for (const [id, key] of values) {
             const input = document.getElementById(id);
             const value = state[key];
-            if (document.activeElement !== input) {
+            // No se borra lo que el profesor escribió mal: queda marcado hasta que lo corrija.
+            const keepInvalid = config.isOwner && input.getAttribute('aria-invalid') === 'true';
+            if (document.activeElement !== input && !keepInvalid) {
                 input.value = value ?? '';
                 input.removeAttribute('aria-invalid');
             }
@@ -208,37 +210,91 @@
             }
         }
         if (!complete) {
-            document.getElementById('pascalPiston1').style.transform = 'translateY(0px)';
-            document.getElementById('pascalPiston2').style.transform = 'translateY(0px)';
-            document.getElementById('pascalInputForce').style.transform = 'translateY(0px)';
-            document.getElementById('pascalOutputForce').style.transform = 'translateY(0px)';
-            document.getElementById('pascalFluid1').setAttribute('y', '102');
-            document.getElementById('pascalFluid1').setAttribute('height', '68');
-            document.getElementById('pascalFluid2').setAttribute('y', '74');
-            document.getElementById('pascalFluid2').setAttribute('height', '96');
+            showPascalResults(null);
+            drawPascal({ width1: PASCAL_DEFAULT.width1, offset1: 0, offset2: 0, arrow1: PASCAL_DEFAULT.arrow1, arrow2: PASCAL_DEFAULT.arrow2 });
             return;
         }
 
         const area1 = Number(state.pascal_area1);
         const area2 = Number(state.pascal_area2);
-        const force1 = Number(state.pascal_force1);
         const distance1 = Number(state.pascal_distance1);
-        const area1M2 = area1 / 10000;
-        const area2M2 = area2 / 10000;
+        // A₁·d₁ = A₂·d₂ y F₂ = F₁·(A₂/A₁): la prensa multiplica la fuerza por la razón de áreas.
         const ratio = area2 / area1;
         const distance2 = distance1 / ratio;
-        const piston1Offset = Math.min(distance1 * 0.8, 42);
-        const piston2Offset = Math.min(distance2 * 0.8, 23);
-        document.getElementById('pascalPiston1').style.transform = 'translateY(' + piston1Offset + 'px)';
-        document.getElementById('pascalPiston2').style.transform = 'translateY(-' + piston2Offset + 'px)';
-        document.getElementById('pascalInputForce').style.transform = 'translateY(' + piston1Offset + 'px)';
-        document.getElementById('pascalOutputForce').style.transform = 'translateY(-' + piston2Offset + 'px)';
-        const fluid1Y = 102 + piston1Offset;
-        const fluid2Y = 74 - piston2Offset;
-        document.getElementById('pascalFluid1').setAttribute('y', String(fluid1Y));
-        document.getElementById('pascalFluid1').setAttribute('height', String(170 - fluid1Y));
-        document.getElementById('pascalFluid2').setAttribute('y', String(fluid2Y));
-        document.getElementById('pascalFluid2').setAttribute('height', String(170 - fluid2Y));
+        // P = F₁/A₁ con A₁ en m² (1 cm² = 0,0001 m²); F₂ = P·A₂.
+        const pressure = Number(state.pascal_force1) / (area1 / 10000);
+        showPascalResults({ pressure, force2: pressure * (area2 / 10000), ratio, distance2 });
+
+        // Una sola escala (px por cm) para ambos pistones, así el dibujo respeta d₂/d₁ aunque
+        // la distancia sea grande. Se elige para que ningún pistón salga de su cilindro.
+        const scale = Math.min(0.8, PASCAL_MAX_DROP / distance1, PASCAL_MAX_RISE / distance2);
+
+        // Pistones circulares: el diámetro crece con la raíz del área. El grande mantiene su ancho.
+        const width1 = Math.min(PASCAL_WIDTH2, Math.max(PASCAL_MIN_WIDTH, PASCAL_WIDTH2 * Math.sqrt(area1 / area2)));
+
+        // La flecha de F₂ tiene el largo máximo y la de F₁ la fracción F₁/F₂ = A₁/A₂ de ese largo.
+        drawPascal({
+            width1,
+            offset1: distance1 * scale,
+            offset2: distance2 * scale,
+            arrow1: Math.min(PASCAL_MAX_ARROW, Math.max(PASCAL_MIN_ARROW, PASCAL_MAX_ARROW / ratio)),
+            arrow2: PASCAL_MAX_ARROW,
+        });
+    }
+
+    function showPascalResults(results) {
+        const text = (id, value) => { document.getElementById(id).textContent = value; };
+        text('pascalPressure', results ? number(results.pressure) + ' Pa' : '— Pa');
+        text('pascalPressureKpa', results ? number(results.pressure / 1000) + ' kPa' : '— kPa');
+        text('pascalForce2', results ? number(results.force2) + ' N' : '— N');
+        text('pascalFactor', 'La fuerza se multiplica por ' + (results ? number(results.ratio) : '—'));
+        text('pascalDistance2', results ? number(results.distance2) + ' cm' : '— cm');
+    }
+
+    // Geometría del dibujo de la prensa (unidades del viewBox del SVG).
+    const PASCAL_CENTER1 = 185;
+    const PASCAL_CENTER2 = 480;
+    const PASCAL_WIDTH2 = 140;    // ancho interior del cilindro grande
+    const PASCAL_MIN_WIDTH = 20;  // por debajo de esto el cilindro pequeño no se distingue
+    const PASCAL_MAX_DROP = 42;   // lo que puede bajar el pistón pequeño sin tocar el fondo
+    const PASCAL_MAX_RISE = 23;   // lo que puede subir el pistón grande sin salir del cilindro
+    const PASCAL_MAX_ARROW = 40;
+    const PASCAL_MIN_ARROW = 8;
+    const PASCAL_DEFAULT = { width1: 90, arrow1: 23, arrow2: 30 };
+
+    function drawPascal({ width1, offset1, offset2, arrow1, arrow2 }) {
+        const set = (id, attrs) => {
+            const el = document.getElementById(id);
+            for (const [name, value] of Object.entries(attrs)) el.setAttribute(name, String(value));
+        };
+        const left1 = PASCAL_CENTER1 - width1 / 2;
+        const left2 = PASCAL_CENTER2 - PASCAL_WIDTH2 / 2;
+        set('pascalWalls', { d: `M${left1} 65v105h${width1}V65M${left2} 35v135h${PASCAL_WIDTH2}V35` });
+        set('pascalPlate1', { x: left1 - 3, width: width1 + 6 });
+        set('pascalFluid1', { x: left1 + 3, width: width1 - 6, y: 102 + offset1, height: 68 - offset1 });
+        set('pascalFluid2', { y: 74 - offset2, height: 96 + offset2 });
+
+        // F₁ empuja hacia abajo y termina sobre el pistón pequeño; F₂ sale hacia arriba del grande.
+        set('pascalInputArrow', { d: `M${PASCAL_CENTER1} ${78 - arrow1}v${arrow1}m-7-8 7 8 7-8` });
+        set('pascalInputLabel', { y: 78 - arrow1 / 2 + 4 });
+        set('pascalOutputArrow', { d: `M${PASCAL_CENTER2} 48V${48 - arrow2}m-7 8 7-8 7 8` });
+        set('pascalOutputLabel', { y: 48 - arrow2 / 2 + 4 });
+
+        for (const [id, offset] of [['pascalPiston1', offset1], ['pascalInputForce', offset1]]) {
+            document.getElementById(id).style.transform = `translateY(${offset}px)`;
+        }
+        for (const [id, offset] of [['pascalPiston2', -offset2], ['pascalOutputForce', -offset2]]) {
+            document.getElementById(id).style.transform = `translateY(${offset}px)`;
+        }
+    }
+
+    // El pistón grande (A₂) debe tener más área que el pequeño (A₁).
+    function checkPascalAreas() {
+        const area1 = document.getElementById('pascalArea1');
+        const area2 = document.getElementById('pascalArea2');
+        const inverted = area1.value !== '' && area2.value !== '' && area2.valueAsNumber <= area1.valueAsNumber;
+        area2.setCustomValidity(inverted ? 'El área del pistón grande debe ser mayor que la del pistón pequeño.' : '');
+        document.getElementById('pascalAreaError').hidden = !inverted;
     }
 
     function pascalValue(id, key) {
@@ -336,6 +392,7 @@
 
     function changed() {
         if (!config.isOwner || !active) return;
+        checkPascalAreas();
         state = {
             activity: state.activity,
             arquimedes_fluido1: document.getElementById('arquimedesLiquido1').value,

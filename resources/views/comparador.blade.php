@@ -164,43 +164,57 @@
                 <dl class="mt-3.5 grid grid-cols-2 gap-x-6 gap-y-2 border-t border-[#cdd9cc] pt-3.5 text-[11px] text-muted max-phone:grid-cols-1">
                     <div class="flex gap-2"><dt class="font-serif font-bold text-ink">P</dt><dd>Presión transmitida por el fluido (Pa)</dd></div>
                     <div class="flex gap-2"><dt class="font-serif font-bold text-ink">F₁ / F₂</dt><dd>Fuerza aplicada y fuerza de salida (N)</dd></div>
-                    <div class="flex gap-2"><dt class="font-serif font-bold text-ink">A₁ / A₂</dt><dd>Área de los pistones pequeño y grande (m²)</dd></div>
+                    <div class="flex gap-2"><dt class="font-serif font-bold text-ink">A₁ / A₂</dt><dd>Área de los pistones pequeño y grande. Se ingresan en cm²; para calcular P en Pa se pasan a m² (1 cm² = 0,0001 m²)</dd></div>
                 </dl>
             </div>
             <figure class="mb-6 rounded-[13px] border border-line bg-white px-4 py-3">
-                <svg class="mx-auto block w-full max-w-[640px]" viewBox="0 0 640 235" role="img" aria-label="Prensa hidráulica animada: el pistón pequeño desciende y el grande asciende">
+                <svg class="mx-auto block w-full max-w-[640px]" viewBox="0 -20 640 255" role="img" aria-label="Prensa hidráulica animada: el pistón pequeño desciende y el grande asciende. El ancho de cada pistón y el largo de cada flecha son proporcionales a su área y a su fuerza">
                     <path d="M185 170v35h285v-35" fill="none" stroke="#68827a" stroke-width="16" stroke-linejoin="round"/>
                     <path d="M185 170v35h285v-35" fill="none" stroke="#70b8b0" stroke-width="10" stroke-linejoin="round"/>
                     <rect id="pascalFluid1" class="transition-[y,height] duration-500 ease-[ease]" x="143" y="102" width="84" height="68" fill="#70b8b0" opacity=".8"/>
                     <rect id="pascalFluid2" class="transition-[y,height] duration-500 ease-[ease]" x="413" y="74" width="134" height="96" fill="#70b8b0" opacity=".8"/>
-                    <path d="M140 65v105h90V65M410 35v135h140V35" fill="none" stroke="#68827a" stroke-width="5" stroke-linejoin="round"/>
+                    <path id="pascalWalls" d="M140 65v105h90V65M410 35v135h140V35" fill="none" stroke="#68827a" stroke-width="5" stroke-linejoin="round"/>
                     <g id="pascalPiston1" class="transition-transform duration-500 ease-[ease]">
-                        <rect x="137" y="88" width="96" height="14" rx="3" fill="#d9e3df" stroke="#526963" stroke-width="2"/>
+                        <rect id="pascalPlate1" x="137" y="88" width="96" height="14" rx="3" fill="#d9e3df" stroke="#526963" stroke-width="2"/>
                     </g>
                     <g id="pascalPiston2" class="transition-transform duration-500 ease-[ease]">
-                        <rect x="405" y="58" width="150" height="16" rx="3" fill="#d9e3df" stroke="#526963" stroke-width="2"/>
+                        <rect id="pascalPlate2" x="405" y="58" width="150" height="16" rx="3" fill="#d9e3df" stroke="#526963" stroke-width="2"/>
                     </g>
                     <g id="pascalInputForce" class="transition-transform duration-500 ease-[ease]">
-                        <path d="M185 55v23m-7-8 7 8 7-8" fill="none" stroke="#d93025" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
-                        <text x="202" y="70" fill="#455c60" font-size="13">F₁</text>
+                        <path id="pascalInputArrow" d="M185 55v23m-7-8 7 8 7-8" fill="none" stroke="#d93025" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+                        <text id="pascalInputLabel" x="202" y="70" fill="#455c60" font-size="13">F₁</text>
                     </g>
                     <g id="pascalOutputForce" class="transition-transform duration-500 ease-[ease]">
-                        <path d="M480 48V18m-7 8 7-8 7 8" fill="none" stroke="#17846b" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
-                        <text x="496" y="33" fill="#455c60" font-size="13">F₂</text>
+                        <path id="pascalOutputArrow" d="M480 48V18m-7 8 7-8 7 8" fill="none" stroke="#17846b" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+                        <text id="pascalOutputLabel" x="496" y="33" fill="#455c60" font-size="13">F₂</text>
                     </g>
                     <text x="185" y="228" text-anchor="middle" fill="#455c60" font-size="13">A₁</text>
                     <text x="480" y="228" text-anchor="middle" fill="#455c60" font-size="13">A₂</text>
                 </svg>
             </figure>
-            <div class="grid grid-cols-1 gap-5">
+            <div class="grid grid-cols-2 gap-5 max-phone:grid-cols-1">
                 <article class="{{ $card }} mx-auto w-full max-w-[560px]">
                     <header class="mb-6"><h3 class="m-0 text-[15px] font-[650]">Datos de la prensa</h3></header>
                     <label class="{{ $label }}" for="pascalArea1">Área del pistón pequeño (cm²)</label>
                     <input type="number" id="pascalArea1" class="experiment-control bg-[#fafcf8] p-3 text-[12px] tabular-nums aria-invalid:border-danger disabled:text-[#455c60] disabled:opacity-100" min="0.1" max="1000" step="0.1" value="{{ $room->state['pascal_area1'] ?? '' }}" @disabled(!$isOwner || !$active)>
                     <label class="{{ $label }} mt-4" for="pascalArea2">Área del pistón grande (cm²)</label>
-                    <input type="number" id="pascalArea2" class="experiment-control bg-[#fafcf8] p-3 text-[12px] tabular-nums aria-invalid:border-danger disabled:text-[#455c60] disabled:opacity-100" min="0.1" max="1000" step="0.1" value="{{ $room->state['pascal_area2'] ?? '' }}" @disabled(!$isOwner || !$active)>
+                    <input type="number" id="pascalArea2" aria-describedby="pascalAreaError" class="experiment-control bg-[#fafcf8] p-3 text-[12px] tabular-nums aria-invalid:border-danger disabled:text-[#455c60] disabled:opacity-100" min="0.1" max="1000" step="0.1" value="{{ $room->state['pascal_area2'] ?? '' }}" @disabled(!$isOwner || !$active)>
+                    <p id="pascalAreaError" class="mt-3 mb-0 text-[12px] text-danger" role="alert" hidden>El área del pistón grande debe ser mayor que la del pistón pequeño.</p>
                     <label class="{{ $label }} mt-4" for="pascalForce1">Fuerza aplicada al pistón pequeño (N)</label>
                     <input type="number" id="pascalForce1" class="experiment-control bg-[#fafcf8] p-3 text-[12px] tabular-nums aria-invalid:border-danger disabled:text-[#455c60] disabled:opacity-100" min="0.1" max="1000" step="0.1" value="{{ $room->state['pascal_force1'] ?? '' }}" @disabled(!$isOwner || !$active)>
+                    <label class="{{ $label }} mt-4" for="pascalDistance1">Distancia que baja el pistón pequeño (cm)</label>
+                    <input type="number" id="pascalDistance1" class="experiment-control bg-[#fafcf8] p-3 text-[12px] tabular-nums aria-invalid:border-danger disabled:text-[#455c60] disabled:opacity-100" min="0.1" max="1000" step="0.1" value="{{ $room->state['pascal_distance1'] ?? '' }}" @disabled(!$isOwner || !$active)>
+                </article>
+                <article class="{{ $card }}" aria-live="polite">
+                    <header class="mb-6"><h3 class="m-0 text-[15px] font-[650]">Lo que entrega la prensa</h3></header>
+                    <span class="{{ $label }}">Presión en el fluido · P = F₁/A₁</span>
+                    <strong id="pascalPressure" class="{{ $result }} mt-1 block max-laptop:text-[22px]">— Pa</strong>
+                    <span id="pascalPressureKpa" class="text-[12px] text-muted">— kPa</span>
+                    <span class="{{ $label }} mt-4">Fuerza en el pistón grande · F₂ = P·A₂</span>
+                    <strong id="pascalForce2" class="{{ $result }} mt-1 block max-laptop:text-[22px]">— N</strong>
+                    <span id="pascalFactor" class="text-[12px] text-muted">La fuerza se multiplica por —</span>
+                    <span class="{{ $label }} mt-4">Distancia que sube el pistón grande · d₂ = d₁·A₁/A₂</span>
+                    <strong id="pascalDistance2" class="{{ $result }} mt-1 block max-laptop:text-[22px]">— cm</strong>
                 </article>
             </div>
         </section>

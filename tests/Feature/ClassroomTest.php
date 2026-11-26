@@ -60,6 +60,8 @@ class ClassroomTest extends TestCase
         $this->get(route('classroom.show', $room->code))->assertOk()
             ->assertSee('Principio de Arquímedes')->assertSee('Presión hidrostática')->assertSee('Principio de Pascal')
             ->assertSee('id="pascalPiston1"', false)->assertSee('id="pascalArea1"', false)
+            ->assertSee('id="pascalArea2"', false)->assertSee('id="pascalForce1"', false)->assertSee('id="pascalDistance1"', false)
+            ->assertSee('id="pascalPressure"', false)->assertSee('id="pascalForce2"', false)->assertSee('id="pascalDistance2"', false)
             ->assertSee('value=""', false)->assertDontSee('Resultados calculados')
             ->assertDontSee('Sí, finalizar clase');
     }
@@ -161,6 +163,25 @@ class ClassroomTest extends TestCase
         $this->withSession($this->teacher($room))->putJson(route('classroom.update', $room->code), $state)
             ->assertUnprocessable()->assertJsonValidationErrors('pascal_area1');
         $this->assertSame(0, $room->fresh()->revision);
+    }
+
+    public function test_pascal_large_piston_must_have_more_area_than_the_small_one(): void
+    {
+        $room = $this->room();
+        foreach ([[20, 2], [5, 5]] as [$area1, $area2]) {
+            $state = array_merge(config('physics.initial_state'), [
+                'pascal_area1' => $area1,
+                'pascal_area2' => $area2,
+                'pascal_force1' => 10,
+                'pascal_distance1' => 50,
+            ]);
+            $this->withSession($this->teacher($room))->putJson(route('classroom.update', $room->code), $state)
+                ->assertUnprocessable()->assertJsonValidationErrors('pascal_area2');
+        }
+        $this->assertSame(0, $room->fresh()->revision);
+        // Con un solo dato todavía no hay nada que comparar.
+        $state = array_merge(config('physics.initial_state'), ['pascal_area1' => 20]);
+        $this->withSession($this->teacher($room))->putJson(route('classroom.update', $room->code), $state)->assertOk();
     }
 
     public function test_pascal_inputs_can_remain_empty_until_the_exercise_is_filled(): void

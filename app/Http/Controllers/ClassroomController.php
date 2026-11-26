@@ -146,6 +146,13 @@ class ClassroomController extends Controller
                 $state[$field] = round((float) $state[$field], 2);
             }
         }
+        // En una prensa hidráulica el pistón de salida (A₂) es el grande.
+        if ($state['pascal_area1'] !== null && $state['pascal_area2'] !== null
+            && $state['pascal_area2'] <= $state['pascal_area1']) {
+            throw ValidationException::withMessages([
+                'pascal_area2' => 'El área del pistón grande debe ser mayor que la del pistón pequeño.',
+            ]);
+        }
         $state['pascal_configured'] = count(array_filter([
             $state['pascal_area1'],
             $state['pascal_area2'],
